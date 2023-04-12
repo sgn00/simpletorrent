@@ -9,25 +9,29 @@
 
 namespace simpletorrent {
 
+enum class DownloadState { ACTIVE, PAUSED, STOPPED };
+
+struct TorrentMetadata {
+  std::string announce_url;
+  std::vector<std::string> piece_hashes;
+  long long piece_length;
+  long long total_length;
+  std::string output_file;
+  std::string info_hash;
+};
+
 class TorrentClient {
  public:
-  TorrentClient(const std::string& torrent_file,
-                const std::string& output_file);
-
-  void start_download();
+  void start_download(const std::string& torrent_file);
 
   void stop_download();
 
  private:
-  void parse_torrent_file(const std::string& torrent_file);
+  TorrentMetadata parse_torrent_file(const std::string& torrent_file);
 
   void connect_to_tracker();
 
   void connect_to_peers();
-
-  Tracker tracker_;
-
-  PieceManager piece_manager_;
 
   // A map of peer ID to Peer objects, representing the connected peers
   std::unordered_map<int, Peer> peers_;
@@ -37,6 +41,10 @@ class TorrentClient {
   std::atomic<DownloadState> download_state_;
 };
 
-enum class DownloadState { ACTIVE, PAUSED, STOPPED };
+class ParseException : public std::runtime_error {
+ public:
+  explicit ParseException(const std::string& message)
+      : std::runtime_error(message) {}
+};
 
 }  // namespace simpletorrent
