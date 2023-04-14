@@ -1,3 +1,5 @@
+#pragma once
+
 #include <bencode.hpp>
 #include <optional>
 #include <string>
