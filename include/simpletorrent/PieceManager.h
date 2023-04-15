@@ -44,7 +44,7 @@ class PieceManager {
 
   Buffer buffer_;
 
-  RarityManager rarity_manager_;
+  // RarityManager rarity_manager_;
 
   void update_piece_frequencies(
       const std::vector<uint8_t>& peer_bitfield,
@@ -61,8 +61,6 @@ class PieceManager {
 
   void save_piece(int piece_index,
                   const std::string& data);  // Write piece to file
-  // how do we maintain the rarity, in a way that we know which peer has which
-  // piece as well?
 };
 
 }  // namespace simpletorrent

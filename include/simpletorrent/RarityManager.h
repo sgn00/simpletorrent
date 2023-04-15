@@ -21,5 +21,8 @@ class RarityManager {
  private:
   std::unordered_map<int, std::set<int>> rarest_pieces_per_peer_;
   std::unordered_map<int, std::unordered_set<int>> piece_to_peers_;
+
+  void recalculate_rarest_pieces();
+  std::set<int> calculate_rarest_pieces_for_peer(int peer_id);
 };
 }  // namespace simpletorrent

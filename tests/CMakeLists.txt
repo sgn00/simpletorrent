@@ -1,5 +1,7 @@
 file(GLOB_RECURSE TEST_SOURCES "*.cpp")
 
+enable_testing()
+
 add_executable(simpletorrent_tests ${TEST_SOURCES})
 
 target_link_libraries(simpletorrent_tests PRIVATE simpletorrent_lib)

@@ -62,14 +62,14 @@ void PieceManager::save_piece(int piece_index, const std::string& data) {
 
   // clean up
   pieces_[piece_index].completed = true;
-  rarity_manager_.remove_piece_from_peers(piece_index);
+  // rarity_manager_.remove_piece_from_peers(piece_index);
   buffer_.remove_piece_from_buffer(piece_index);
 }
 
 void PieceManager::update_piece_frequencies(
     const std::vector<uint8_t>& peer_bitfield, int peer_id) {
   peers_bitfield_[peer_id] = peer_bitfield;
-  rarity_manager_.update_piece_frequencies(peer_bitfield, peer_id);
+  // rarity_manager_.update_piece_frequencies(peer_bitfield, peer_id);
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
@@ -89,17 +89,17 @@ std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
 
   if (!chosen_piece.has_value()) {
     // 2. If no match, we try to get rarest piece for this peer
-    chosen_piece = rarity_manager_.select_rarest_piece_for_peer(peer_id);
+    // chosen_piece = rarity_manager_.select_rarest_piece_for_peer(peer_id);
 
     // 3. If still no match, we try to get a random piece that has not yet been
     // downloaded
-    if (!chosen_piece.has_value()) {
-      for (size_t i = 0; i < bitfield.size(); i++) {
-        if (pieces_.at(i).completed == false && bitfield[i] == HAVE) {
-          chosen_piece = std::optional<int>(i);
-        }
+    // if (!chosen_piece.has_value()) {
+    for (size_t i = 0; i < bitfield.size(); i++) {
+      if (pieces_.at(i).completed == false && bitfield[i] == HAVE) {
+        chosen_piece = std::optional<int>(i);
       }
     }
+    // }
   }
 
   // 4. Now check if we actually have a piece, if still no piece, the peer will

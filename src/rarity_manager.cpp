@@ -27,16 +27,30 @@ std::optional<int> RarityManager::select_rarest_piece_for_peer(
 
 void RarityManager::update_piece_frequencies(
     const std::vector<uint8_t>& peer_bitfield, int peer_id) {
-  std::set<int> rarest_pieces;
-  int min_frequency = INT_MAX;
-
   for (size_t i = 0; i < peer_bitfield.size(); i++) {
     if (peer_bitfield[i] == DONT_HAVE) {
       continue;
     }
     int piece = i;
     piece_to_peers_[piece].insert(peer_id);
+  }
 
+  rarest_pieces_per_peer_[peer_id] = calculate_rarest_pieces_for_peer(peer_id);
+
+  recalculate_rarest_pieces();
+}
+
+void RarityManager::recalculate_rarest_pieces() {
+  for (auto& [peer_id, rarest_pieces] : rarest_pieces_per_peer_) {
+    rarest_pieces = calculate_rarest_pieces_for_peer(peer_id);
+  }
+}
+
+std::set<int> RarityManager::calculate_rarest_pieces_for_peer(int peer_id) {
+  std::set<int> rarest_pieces;
+  int min_frequency = INT_MAX;
+
+  for (const auto& piece : piece_to_peers_[peer_id]) {
     int frequency = piece_to_peers_.at(piece).size();
     if (frequency < min_frequency) {
       min_frequency = frequency;
@@ -47,7 +61,7 @@ void RarityManager::update_piece_frequencies(
     }
   }
 
-  rarest_pieces_per_peer_[peer_id] = std::move(rarest_pieces);
+  return rarest_pieces;
 }
 
 }  // namespace simpletorrent
