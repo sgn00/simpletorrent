@@ -8,27 +8,10 @@
 
 #include "Buffer.h"
 #include "Constant.h"
+#include "Metadata.h"
 #include "RarityManager.h"
 
 namespace simpletorrent {
-
-struct BlockRequest {  // this is sent to the Peer
-  int piece_index;
-  int block_offset;
-  int block_length;
-};
-
-struct Block {  // this is what the Peer sends us
-  int piece_index;
-  int block_offset;
-  std::vector<char> data;
-};
-
-struct PieceMetadata {  // this is in our vector of PieceMetadata, for checking
-                        // of hash and whether it is completed
-  std::string piece_hash;
-  bool completed;
-};
 
 class PieceManager {
  public:
@@ -42,17 +25,9 @@ class PieceManager {
       int peer_id,
       const Block& block);  // Peer calls this when a block is downloaded
 
-  bool verify_piece(int piece_index);  // Check a piece against its hash
-
-  void save_piece(int piece_index);  // Write piece to file
-
   bool is_download_complete() const;
 
-  std::vector<uint8_t> get_bitfield() const;
-
  private:
-  static constexpr size_t DEFAULT_BLOCK_LENGTH = 16384;  // 16 KiB
-
   size_t piece_length_;
 
   size_t total_length_;
@@ -81,6 +56,11 @@ class PieceManager {
                      // the peer has), and find a block which has not yet been
                      // downloaded
 
+  bool is_verified_piece(int piece_index, const std::string& data)
+      const;  // Check a piece against its hash
+
+  void save_piece(int piece_index,
+                  const std::string& data);  // Write piece to file
   // how do we maintain the rarity, in a way that we know which peer has which
   // piece as well?
 };
