@@ -9,7 +9,8 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
                            const std::string& output_file)
     : piece_length_(piece_length),
       total_length_(total_length),
-      output_file_(output_file) {
+      output_file_(output_file),
+      buffer_(DEFAULT_BLOCK_LENGTH) {
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = total_length % piece_length;
@@ -40,7 +41,11 @@ bool PieceManager::add_block(int peer_id, const Block& block) {
   if (completed_piece.has_value()) {
     if (is_verified_piece(piece_idx, completed_piece.value())) {
       save_piece(piece_idx, completed_piece.value());
+      pieces_[piece_idx].completed = true;  // if verified, mark as completed
     }
+
+    buffer_.remove_piece_from_buffer(
+        piece_idx);  // regardless if valid or not, remove it from buffer
   }
 
   return true;
@@ -59,11 +64,6 @@ void PieceManager::save_piece(int piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
   output_file_stream_.seekp(file_offset);
   output_file_stream_.write(data.c_str(), data.size());
-
-  // clean up
-  pieces_[piece_index].completed = true;
-  // rarity_manager_.remove_piece_from_peers(piece_index);
-  buffer_.remove_piece_from_buffer(piece_index);
 }
 
 void PieceManager::update_piece_frequencies(
@@ -91,9 +91,8 @@ std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
     // 2. If no match, we try to get rarest piece for this peer
     // chosen_piece = rarity_manager_.select_rarest_piece_for_peer(peer_id);
 
-    // 3. If still no match, we try to get a random piece that has not yet been
-    // downloaded
-    // if (!chosen_piece.has_value()) {
+    // 3. If still no match, we try to get the first piece the peer has that has
+    // not yet been downloaded if (!chosen_piece.has_value()) {
     for (size_t i = 0; i < bitfield.size(); i++) {
       if (pieces_.at(i).completed == false && bitfield[i] == HAVE) {
         chosen_piece = std::optional<int>(i);
@@ -113,7 +112,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
   if (!in_buffer) {
     bool added_to_buffer =
         buffer_.add_piece_to_buffer(piece_idx, pieces_[piece_idx].num_blocks,
-                                    pieces_[piece_idx].piece_length);
+                                    pieces_[piece_idx].current_piece_length);
     if (!added_to_buffer) {  // if buffer is full, then peer will have nothing
                              // to do
       return std::nullopt;
@@ -122,7 +121,8 @@ std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
 
   int block_idx_to_retrieve = buffer_.get_block_idx_to_retrieve(
       piece_idx);  // retrieve the block_idx that has not yet been downloaded
-  BlockRequest block_request(piece_idx, block_idx_to_retrieve);
+  BlockRequest block_request(piece_idx, block_idx_to_retrieve,
+                             DEFAULT_BLOCK_LENGTH);
   return block_request;
 }
 }  // namespace simpletorrent

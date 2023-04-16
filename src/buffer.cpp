@@ -2,6 +2,8 @@
 
 namespace simpletorrent {
 
+Buffer::Buffer(size_t block_length) : block_length_(block_length) {}
+
 std::vector<int> Buffer::get_pieces_in_buffer() const {
   std::vector<int> res;
   for (const auto& [k, v] : piece_buffer_map_) {
@@ -25,6 +27,7 @@ bool Buffer::add_piece_to_buffer(int piece_idx, int num_blocks,
     }
   }
   buffer_[empty_idx] = BufferPiece(piece_idx, num_blocks, piece_length);
+  piece_buffer_map_[piece_idx] = empty_idx;
   return true;
 }
 
@@ -43,7 +46,7 @@ int Buffer::get_block_idx_to_retrieve(int piece_idx) const {
 std::optional<std::string> Buffer::write_block_to_buffer(const Block& block) {
   int piece_idx = block.piece_index;
   int block_offset = block.block_offset;
-  int block_idx = block_offset / DEFAULT_BLOCK_LENGTH;
+  int block_idx = block_offset / block_length_;
 
   int buffer_idx = piece_buffer_map_.at(piece_idx);
   auto& piece = buffer_[buffer_idx];

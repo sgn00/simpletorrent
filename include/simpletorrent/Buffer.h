@@ -25,6 +25,8 @@ struct BufferPiece {
 
 class Buffer {
  public:
+  Buffer(size_t block_length);
+
   std::vector<int> get_pieces_in_buffer() const;
 
   bool add_piece_to_buffer(int piece_idx, int num_blocks, size_t piece_length);
@@ -39,10 +41,12 @@ class Buffer {
 
  private:
   static constexpr size_t DEFAULT_BUFFER_SIZE =
-      64;  // max 64 piece parts in memory
+      32;  // max 32 piece parts in memory
   std::array<BufferPiece, DEFAULT_BUFFER_SIZE> buffer_;
 
   std::unordered_map<int, int>
       piece_buffer_map_;  // maps piece index to buffer index
+
+  size_t block_length_;
 };
 }  // namespace simpletorrent
