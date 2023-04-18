@@ -20,7 +20,7 @@ enum class MessageType : uint8_t {
   Port = 9
 };
 
-std::vector<uint8_t> construct_message(
+inline std::vector<uint8_t> construct_message(
     MessageType type, const std::vector<uint8_t>& payload = {}) {
   uint32_t length = static_cast<uint32_t>(payload.size() + 1);
   std::vector<uint8_t> message;
@@ -39,7 +39,8 @@ std::vector<uint8_t> construct_message(
   return message;
 }
 
-std::vector<uint8_t> construct_request_message(const BlockRequest& request) {
+inline std::vector<uint8_t> construct_request_message(
+    const BlockRequest& request) {
   std::vector<uint8_t> payload(12);
 
   // Set the piece index
@@ -64,11 +65,11 @@ std::vector<uint8_t> construct_request_message(const BlockRequest& request) {
   return construct_message(MessageType::Request, payload);
 }
 
-uint32_t get_header_length(const std::vector<uint8_t>& header) {
+inline uint32_t get_header_length(const std::vector<uint8_t>& header) {
   return (header[0] << 24) | (header[1] << 16) | (header[2] << 8) | header[3];
 }
 
-std::pair<uint32_t, uint32_t> retrieve_piece_index_and_block_offset(
+inline std::pair<uint32_t, uint32_t> retrieve_piece_index_and_block_offset(
     const std::vector<uint8_t>& payload) {
   uint32_t piece_index =
       (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
@@ -77,6 +78,25 @@ std::pair<uint32_t, uint32_t> retrieve_piece_index_and_block_offset(
       (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
 
   return {piece_index, block_offset};
+}
+
+inline std::vector<uint8_t> get_peer_bitfield(
+    const std::vector<uint8_t>& payload, uint32_t num_pieces) {
+  // Initialize a vector to represent the availability of pieces
+  std::vector<uint8_t> peer_bitfield(num_pieces);
+
+  // Parse the bitfield payload
+  for (uint32_t i = 0; i < payload.size(); ++i) {
+    for (uint8_t j = 0; j < 8; ++j) {
+      bool has_piece = (payload[i] & (0x80 >> j)) != 0;
+      uint32_t piece_index = i * 8 + j;
+
+      if (piece_index < num_pieces) {
+        peer_bitfield[piece_index] = has_piece;
+      }
+    }
+  }
+  return peer_bitfield;
 }
 
 }  // namespace message_util

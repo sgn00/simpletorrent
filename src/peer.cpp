@@ -51,9 +51,13 @@ asio::awaitable<void> Peer::start() {
     co_return;
   }
 
-  // co_await async_connect(socket_, endpoints, asio::use_awaitable);
-  // co_await send_handshake();
-  // co_await read_handshake_response();
+  ec = co_await receive_messages();
+  if (ec) {
+    std::cout << "error during receive messages" << std::endl;
+    co_return;
+  }
+
+  co_return;
 }
 
 asio::awaitable<std::error_code> Peer::send_handshake() {
@@ -187,7 +191,7 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
         co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
                                   asio::as_tuple(asio::use_awaitable));
     if (ec2) {
-      co_return ec;
+      co_return ec2;
     }
 
     MessageType type = static_cast<MessageType>(message_type);
@@ -206,11 +210,11 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
     switch (type) {
       case MessageType::Choke:
         std::cout << "Received choke message" << std::endl;
-        is_choked_ = false;
         break;
       case MessageType::Unchoke:
         std::cout << "Received unchoke message" << std::endl;
         // Handle unchoke message
+        is_choked_ = false;
         break;
       case MessageType::Interested:
         std::cout << "Received interested message" << std::endl;
@@ -263,20 +267,7 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
   size_t payload_length = payload.size();
   uint32_t num_pieces = payload_length * 8;
 
-  // Initialize a vector to represent the availability of pieces
-  std::vector<uint8_t> peer_bitfield(num_pieces);
-
-  // Parse the bitfield payload
-  for (uint32_t i = 0; i < payload_length; ++i) {
-    for (uint8_t j = 0; j < 8; ++j) {
-      bool has_piece = (payload[i] & (0x80 >> j)) != 0;
-      uint32_t piece_index = i * 8 + j;
-
-      if (piece_index < num_pieces) {
-        peer_bitfield[piece_index] = has_piece;
-      }
-    }
-  }
+  auto peer_bitfield = message_util::get_peer_bitfield(payload, num_pieces);
 
   // Handle the parsed bitfield data (e.g., store it, update the state, or start
   // requesting pieces)
