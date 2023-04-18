@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+#include "Metadata.h"
+
 namespace simpletorrent {
 
 const int PORT = 8080;
@@ -12,8 +14,9 @@ const int TRACKER_TIMEOUT = 15000;
 
 class Tracker {
  public:
-  Tracker(const std::string& announce_url, const std::string& info_hash);
-  const std::vector<std::string>& get_peers() const;
+  Tracker(const std::string& announce_url, const std::string& info_hash, const std::string& our_id);
+  const std::vector<PeerConnInfo>& get_peers() const;
+  const std::string& get_info_hash() const;
   bool update_peers();
 
  private:
@@ -22,8 +25,8 @@ class Tracker {
 
   std::string announce_url_;
   std::string info_hash_;
-  std::string peer_id_;
-  std::vector<std::string> peers_;
+  std::string our_id_;
+  std::vector<PeerConnInfo> peers_;
 };
 
 }  // namespace simpletorrent

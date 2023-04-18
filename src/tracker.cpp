@@ -5,12 +5,11 @@
 
 namespace simpletorrent {
 
-Tracker::Tracker(const std::string& announce_url, const std::string& info_hash)
-    : announce_url_(announce_url),
-      info_hash_(info_hash),
-      peer_id_("12CDEFGHIJKLMNOPQRST") {}
+Tracker::Tracker(const std::string& announce_url, const std::string& info_hash,
+                 const std::string& our_id)
+    : announce_url_(announce_url), info_hash_(info_hash), our_id_(our_id) {}
 
-const std::vector<std::string>& Tracker::get_peers() const { return peers_; }
+const std::vector<PeerConnInfo>& Tracker::get_peers() const { return peers_; }
 
 bool Tracker::update_peers() {
   auto response = send_request();
@@ -24,7 +23,7 @@ bool Tracker::update_peers() {
 std::optional<bencode::data> Tracker::send_request() const {
   auto parameters = cpr::Parameters{
       {"info_hash", info_hash_},
-      {"peer_id", peer_id_},
+      {"peer_id", our_id_},
       {"port", std::to_string(PORT)},
       {"compact", "1"},
       {"numwant", "50"}  // Request up to 50 peers from the tracker
@@ -52,9 +51,10 @@ void Tracker::parse_tracker_response(const bencode::data& response) {
         ntohs(*reinterpret_cast<const uint16_t*>(peers_string.data() + i + 4));
 
     inet_ntop(AF_INET, &ip, ip_str, INET_ADDRSTRLEN);
-    std::ostringstream peer;
-    peer << ip_str << ':' << port;
-    peers_.push_back(peer.str());
+    peers_.push_back({std::to_string(ip), port});
+    // std::ostringstream peer;
+    // peer << ip_str << ':' << port;
+    // peers_.push_back(peer.str());
   }
 }
 

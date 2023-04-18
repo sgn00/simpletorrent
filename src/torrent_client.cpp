@@ -3,26 +3,35 @@
 #include <iostream>
 #include <sha1.hpp>
 
+#include "simpletorrent/PeerManager.h"
 #include "simpletorrent/TorrentClient.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
+
+TorrentClient::TorrentClient() { our_id_ = generate_random_client_id(20); }
 
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
   TorrentMetadata metadata = parse_torrent_file(torrent_file);
 
   // 2. Fetch peer info from Tracker
-  Tracker tracker(metadata.announce_url, metadata.info_hash);
+  Tracker tracker(metadata.announce_url, metadata.info_hash, our_id_);
   tracker.update_peers();
-  auto peers = tracker.get_peers();
-  for (auto& s : peers) {
-    std::cout << s << std::endl;
-  }
+  // auto peers = tracker.get_peers();
+  // for (auto& s : peers) {
+  //   std::cout << s << std::endl;
+  // }
 
-  // PieceManager pieceManager =
-  //     PieceManager(metadata.piece_hashes, metadata.piece_length,
-  //                  metadata.total_length, metadata.output_file);
+  PieceManager piece_manager =
+      PieceManager(metadata.piece_hashes, metadata.piece_length,
+                   metadata.total_length, metadata.output_file);
+
+  auto peer_conn_info = tracker.get_peers();
+
+  PeerManager peer_manager(piece_manager, peer_conn_info, metadata.info_hash,
+                           our_id_);
+  peer_manager.start();
 }
 
 TorrentMetadata TorrentClient::parse_torrent_file(

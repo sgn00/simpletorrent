@@ -9,14 +9,15 @@ namespace simpletorrent {
 
 Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
            const std::string& info_hash, const std::string& our_id,
-           const std::string& ip_address, uint32_t port)
+           const std::string& ip_address, uint16_t port, uint32_t peer_num_id)
     : piece_manager_(piece_manager),
       socket_(io_context),
       info_hash_(info_hash),
       our_id_(our_id),
       ip_address_(ip_address),
       port_(port),
-      num_in_flight_(0) {}
+      num_in_flight_(0),
+      peer_num_id_(peer_num_id) {}
 
 asio::awaitable<void> Peer::start() {
   asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip_address_), port_);

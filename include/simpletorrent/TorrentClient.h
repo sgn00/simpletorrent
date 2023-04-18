@@ -22,6 +22,8 @@ struct TorrentMetadata {
 
 class TorrentClient {
  public:
+  TorrentClient();
+
   void start_download(const std::string& torrent_file);
 
   void stop_download();
@@ -32,6 +34,8 @@ class TorrentClient {
   void connect_to_tracker();
 
   void connect_to_peers();
+
+  std::string our_id_;
 
   // A map of peer ID to Peer objects, representing the connected peers
   std::unordered_map<int, Peer> peers_;

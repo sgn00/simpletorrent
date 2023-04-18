@@ -5,6 +5,11 @@
 
 namespace simpletorrent {
 
+struct PeerConnInfo {
+  const std::string ip;
+  const uint16_t port;
+};
+
 struct BlockRequest {  // this is sent to the Peer
 
   BlockRequest(uint32_t piece_index, uint32_t block_idx, uint32_t block_length)

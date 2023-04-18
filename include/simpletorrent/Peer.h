@@ -15,7 +15,7 @@ class Peer {
  public:
   Peer(PieceManager& piece_manager, asio::io_context& io_context,
        const std::string& info_hash, const std::string& our_id,
-       const std::string& ip_address, uint32_t port);
+       const std::string& ip_address, uint16_t port, uint32_t peer_num_id);
 
   asio::awaitable<void> start();
 
@@ -25,9 +25,10 @@ class Peer {
   std::string info_hash_;
   std::string our_id_;
   std::string ip_address_;
-  uint32_t port_;
+  uint16_t port_;
   std::string peer_id_;
   uint8_t num_in_flight_;
+  uint32_t peer_num_id_;
   bool is_choked_ = true;
 
   static constexpr int MAX_IN_FLIGHT = 1;
