@@ -28,7 +28,7 @@ class Peer {
   unsigned short port_;
   std::string peer_id_;
   int num_in_flight_;
-  bool is_choked = true;
+  bool is_choked_ = true;
 
   static constexpr int MAX_IN_FLIGHT = 1;
 

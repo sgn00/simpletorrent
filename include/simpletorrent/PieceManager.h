@@ -20,12 +20,12 @@ class PieceManager {
                const std::string& output_file);
 
   std::optional<BlockRequest> select_next_block(
-      int peer_id);  // given a peer, we need to find the rarest piece (which
-                     // the peer has), and find a block which has not yet been
-                     // downloaded
+      uint32_t peer_id);  // given a peer, we need to find the rarest piece
+                          // (which the peer has), and find a block which has
+                          // not yet been downloaded
 
   bool add_block(
-      int peer_id,
+      uint32_t peer_id,
       const Block& block);  // Peer calls this when a block is downloaded
 
   bool is_download_complete() const;
@@ -36,11 +36,11 @@ class PieceManager {
                      // which peer has what piece
 
  private:
-  static constexpr size_t DEFAULT_BLOCK_LENGTH = 16384;  // 16 KiB
+  static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;  // 16 KiB
 
-  size_t piece_length_;
+  uint32_t piece_length_;
 
-  size_t total_length_;
+  uint32_t total_length_;
 
   std::string output_file_;
 
@@ -50,16 +50,16 @@ class PieceManager {
 
   std::vector<PieceMetadata> pieces_;  // needed for hash checking,
 
-  std::unordered_map<int, std::vector<uint8_t>> peers_bitfield_;
+  std::unordered_map<uint32_t, std::vector<uint8_t>> peers_bitfield_;
 
   Buffer buffer_;
 
   // RarityManager rarity_manager_;
 
-  bool is_verified_piece(int piece_index, const std::string& data)
+  bool is_verified_piece(uint32_t piece_index, const std::string& data)
       const;  // Check a piece against its hash
 
-  void save_piece(int piece_index,
+  void save_piece(uint32_t piece_index,
                   const std::string& data);  // Write piece to file
 };
 

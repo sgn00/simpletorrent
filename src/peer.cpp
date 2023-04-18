@@ -206,7 +206,7 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
     switch (type) {
       case MessageType::Choke:
         std::cout << "Received choke message" << std::endl;
-        is_choked = false;
+        is_choked_ = false;
         break;
       case MessageType::Unchoke:
         std::cout << "Received unchoke message" << std::endl;

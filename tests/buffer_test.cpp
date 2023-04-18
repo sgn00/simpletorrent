@@ -63,10 +63,10 @@ TEST_CASE("Write block to piece in buffer") {
   std::string s3 = "DEFGH";
   std::string concat = s1 + s2 + s3 + s4;
 
-  Block b4{0, 15, std::vector<char>(s4.begin(), s4.end())};
-  Block b1{0, 0, std::vector<char>(s1.begin(), s1.end())};
-  Block b3{0, 10, std::vector<char>(s3.begin(), s3.end())};
-  Block b2{0, 5, std::vector<char>(s2.begin(), s2.end())};
+  Block b4{0, 15, std::vector<uint8_t>(s4.begin(), s4.end())};
+  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
+  Block b3{0, 10, std::vector<uint8_t>(s3.begin(), s3.end())};
+  Block b2{0, 5, std::vector<uint8_t>(s2.begin(), s2.end())};
 
   b.add_piece_to_buffer(0, 4, 20);
   auto ret4 = b.write_block_to_buffer(b4);
@@ -86,10 +86,10 @@ TEST_CASE("Get block index to retrieve") {
 
   b.add_piece_to_buffer(0, 4, 20);
 
-  Block b1{0, 0, std::vector<char>(s1.begin(), s1.end())};
+  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
   b.write_block_to_buffer(b1);
 
-  auto ret = b.get_block_idx_to_retrieve(0);
+  auto ret = b.get_block_index_to_retrieve(0);
   REQUIRE(ret == 1);  // should ask for block 2, ie. index 1
 }
 
@@ -101,15 +101,15 @@ TEST_CASE("Get block index to retrieve last block") {
 
   b.add_piece_to_buffer(0, 4, 20);
 
-  Block b4{0, 15, std::vector<char>(s4.begin(), s4.end())};
-  Block b1{0, 0, std::vector<char>(s1.begin(), s1.end())};
-  Block b3{0, 10, std::vector<char>(s3.begin(), s3.end())};
+  Block b4{0, 15, std::vector<uint8_t>(s4.begin(), s4.end())};
+  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
+  Block b3{0, 10, std::vector<uint8_t>(s3.begin(), s3.end())};
 
   b.write_block_to_buffer(b4);
   b.write_block_to_buffer(b1);
   b.write_block_to_buffer(b3);
 
-  auto ret = b.get_block_idx_to_retrieve(0);
+  auto ret = b.get_block_index_to_retrieve(0);
   REQUIRE(ret == 1);  // should ask for block 2
 }
 
