@@ -43,23 +43,26 @@ uint32_t Buffer::get_block_index_to_retrieve(uint32_t piece_index) const {
   return -1;
 }
 
-std::optional<std::string> Buffer::write_block_to_buffer(const Block& block) {
+std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
+    const Block& block) {
   auto piece_index = block.piece_index;
   auto block_offset = block.block_offset;
   auto block_index = block_offset / block_length_;
 
   auto buffer_index = piece_buffer_map_.at(piece_index);
   auto& piece = buffer_[buffer_index];
-  std::copy(block.data.begin(), block.data.end(),
+  // Copy from uint8_t vector to std::string
+  std::copy(block.data_begin, block.data_end,
             piece.data.begin() + block_offset);
   piece.blocks_downloaded[block_index] = HAVE;
   bool completed = std::all_of(piece.blocks_downloaded.cbegin(),
                                piece.blocks_downloaded.cend(),
                                [](uint8_t i) { return i == HAVE; });
   if (!completed) {
-    return std::nullopt;
+    std::string empty;
+    return {false, empty};
   }
-  return std::string(piece.data.begin(), piece.data.end());
+  return {true, piece.data};
 }
 
 bool Buffer::has_piece(uint32_t piece_index) const {

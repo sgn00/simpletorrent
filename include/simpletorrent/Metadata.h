@@ -20,7 +20,8 @@ struct BlockRequest {  // this is sent to the Peer
 struct Block {  // this is what the Peer sends us
   const uint32_t piece_index;
   const uint32_t block_offset;
-  const std::vector<uint8_t>& data;
+  std::vector<uint8_t>::const_iterator data_begin;
+  std::vector<uint8_t>::const_iterator data_end;
 };
 
 struct PieceMetadata {  // this is in our vector of PieceMetadata, for checking

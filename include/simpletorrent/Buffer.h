@@ -13,12 +13,12 @@ struct BufferPiece {
 
   BufferPiece(uint32_t piece_index, uint32_t num_blocks, uint32_t piece_length)
       : piece_index(piece_index),
-        data(piece_length),
+        data(piece_length, '\0'),
         blocks_downloaded(num_blocks, DONT_HAVE),
         empty(false) {}
 
   uint32_t piece_index;
-  std::vector<uint8_t> data;
+  std::string data;
   std::vector<uint8_t> blocks_downloaded;
   bool empty;
 };
@@ -34,7 +34,7 @@ class Buffer {
 
   uint32_t get_block_index_to_retrieve(uint32_t piece_index) const;
 
-  std::optional<std::string> write_block_to_buffer(const Block& block);
+  std::pair<bool, const std::string&> write_block_to_buffer(const Block& block);
 
   bool has_piece(uint32_t piece_idx) const;
 

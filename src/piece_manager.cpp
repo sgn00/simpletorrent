@@ -38,10 +38,10 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
     return false;
   }
 
-  auto completed_piece = buffer_.write_block_to_buffer(block);
-  if (completed_piece.has_value()) {
-    if (is_verified_piece(piece_index, completed_piece.value())) {
-      save_piece(piece_index, completed_piece.value());
+  auto [completed, completed_piece] = buffer_.write_block_to_buffer(block);
+  if (completed) {
+    if (is_verified_piece(piece_index, completed_piece)) {
+      save_piece(piece_index, completed_piece);
       pieces_[piece_index].completed = true;  // if verified, mark as completed
     }
 

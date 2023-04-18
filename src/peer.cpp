@@ -9,7 +9,7 @@ namespace simpletorrent {
 
 Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
            const std::string& info_hash, const std::string& our_id,
-           const std::string& ip_address, unsigned short port)
+           const std::string& ip_address, uint32_t port)
     : piece_manager_(piece_manager),
       socket_(io_context),
       info_hash_(info_hash),
@@ -313,10 +313,11 @@ bool Peer::handle_piece_message(const std::vector<uint8_t>& payload) {
       message_util::retrieve_piece_index_and_block_offset(payload);
 
   // Extract the block data
-  std::vector<uint8_t> block_data(payload.begin() + 8, payload.end());
+  Block block{piece_index, block_offset, payload.begin() + 8, payload.end()};
+  piece_manager_.add_block(0, block);
 
-  // to be continued
-  // piece_manager_.add_block(0, )
+  num_in_flight_--;
+  return true;
 }
 
 }  // namespace simpletorrent

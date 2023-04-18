@@ -63,21 +63,26 @@ TEST_CASE("Write block to piece in buffer") {
   std::string s3 = "DEFGH";
   std::string concat = s1 + s2 + s3 + s4;
 
-  Block b4{0, 15, std::vector<uint8_t>(s4.begin(), s4.end())};
-  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
-  Block b3{0, 10, std::vector<uint8_t>(s3.begin(), s3.end())};
-  Block b2{0, 5, std::vector<uint8_t>(s2.begin(), s2.end())};
+  auto v4 = std::vector<uint8_t>(s4.begin(), s4.end());
+  auto v1 = std::vector<uint8_t>(s1.begin(), s1.end());
+  auto v3 = std::vector<uint8_t>(s3.begin(), s3.end());
+  auto v2 = std::vector<uint8_t>(s2.begin(), s2.end());
+
+  Block b4{0, 15, v4.begin(), v4.end()};
+  Block b1{0, 0, v1.begin(), v1.end()};
+  Block b3{0, 10, v3.begin(), v3.end()};
+  Block b2{0, 5, v2.begin(), v2.end()};
 
   b.add_piece_to_buffer(0, 4, 20);
-  auto ret4 = b.write_block_to_buffer(b4);
-  REQUIRE(!ret4.has_value());
-  auto ret1 = b.write_block_to_buffer(b1);
-  REQUIRE(!ret1.has_value());
-  auto ret3 = b.write_block_to_buffer(b3);
-  REQUIRE(!ret3.has_value());
-  auto ret2 = b.write_block_to_buffer(b2);
-  REQUIRE(ret2.has_value());
-  REQUIRE(ret2.value() == concat);
+  auto [done4, ret4] = b.write_block_to_buffer(b4);
+  REQUIRE(!done4);
+  auto [done1, ret1] = b.write_block_to_buffer(b1);
+  REQUIRE(!done1);
+  auto [done3, ret3] = b.write_block_to_buffer(b3);
+  REQUIRE(!done3);
+  auto [done2, ret2] = b.write_block_to_buffer(b2);
+  REQUIRE(done2);
+  REQUIRE(ret2 == concat);
 }
 
 TEST_CASE("Get block index to retrieve") {
@@ -86,7 +91,9 @@ TEST_CASE("Get block index to retrieve") {
 
   b.add_piece_to_buffer(0, 4, 20);
 
-  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
+  auto v1 = std::vector<uint8_t>(s1.begin(), s1.end());
+
+  Block b1{0, 0, v1.begin(), v1.end()};
   b.write_block_to_buffer(b1);
 
   auto ret = b.get_block_index_to_retrieve(0);
@@ -101,9 +108,13 @@ TEST_CASE("Get block index to retrieve last block") {
 
   b.add_piece_to_buffer(0, 4, 20);
 
-  Block b4{0, 15, std::vector<uint8_t>(s4.begin(), s4.end())};
-  Block b1{0, 0, std::vector<uint8_t>(s1.begin(), s1.end())};
-  Block b3{0, 10, std::vector<uint8_t>(s3.begin(), s3.end())};
+  auto v4 = std::vector<uint8_t>(s4.begin(), s4.end());
+  auto v1 = std::vector<uint8_t>(s1.begin(), s1.end());
+  auto v3 = std::vector<uint8_t>(s3.begin(), s3.end());
+
+  Block b4{0, 15, v4.begin(), v4.end()};
+  Block b1{0, 0, v1.begin(), v1.end()};
+  Block b3{0, 10, v3.begin(), v3.end()};
 
   b.write_block_to_buffer(b4);
   b.write_block_to_buffer(b1);
