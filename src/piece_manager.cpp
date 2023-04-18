@@ -125,4 +125,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(int peer_id) {
                              DEFAULT_BLOCK_LENGTH);
   return block_request;
 }
+
+bool PieceManager::is_download_complete() const { return false; }
+
 }  // namespace simpletorrent

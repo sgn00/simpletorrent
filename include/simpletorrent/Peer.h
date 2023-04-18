@@ -5,7 +5,12 @@
 
 #include "simpletorrent/PieceManager.h"
 
+using namespace std::literals;
+
 namespace simpletorrent {
+
+static constexpr auto protocol_identifier = "BitTorrent protocol"sv;
+
 class Peer {
  public:
   Peer(PieceManager& piece_manager, asio::io_context& io_context,
@@ -21,18 +26,27 @@ class Peer {
   std::string our_id_;
   std::string ip_address_;
   unsigned short port_;
+  std::string peer_id_;
+  int num_in_flight_;
+  bool is_choked = true;
+
+  static constexpr int MAX_IN_FLIGHT = 1;
 
   asio::awaitable<std::error_code> send_handshake();
 
   asio::awaitable<std::error_code> receive_handshake_response();
 
-  asio::awaitable<void> send_interested();
+  asio::awaitable<std::error_code> send_interested();
 
-  asio::awaitable<void> receive_messages();
+  asio::awaitable<std::error_code> receive_messages();
 
-  asio::awaitable<void> send_block_request();
+  asio::awaitable<std::error_code> send_block_requests();
 
   bool parse_handshake_response(
       const std::array<uint8_t, 68>& handshake_response);
+
+  void handle_bitfield_message(const std::vector<uint8_t>& payload);
+
+  bool handle_piece_message(const std::vector<uint8_t>& payload);
 };
 }  // namespace simpletorrent

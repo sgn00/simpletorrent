@@ -3,7 +3,6 @@
 #include <vector>
 
 namespace simpletorrent {
-static constexpr size_t DEFAULT_BLOCK_LENGTH = 16384;  // 16 KiB
 
 struct BlockRequest {  // this is sent to the Peer
 
