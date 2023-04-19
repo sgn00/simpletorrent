@@ -9,7 +9,7 @@
 
 namespace simpletorrent {
 
-TorrentClient::TorrentClient() { our_id_ = generate_random_client_id(20); }
+TorrentClient::TorrentClient() { our_id_ = "ABCDEFGHIJ1234567890"; }
 
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
@@ -26,9 +26,8 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   PieceManager piece_manager =
       PieceManager(metadata.piece_hashes, metadata.piece_length,
                    metadata.total_length, metadata.output_file);
-
   auto peer_conn_info = tracker.get_peers();
-
+  std::cout << "num peers: " << peer_conn_info.size() << std::endl;
   PeerManager peer_manager(piece_manager, peer_conn_info, metadata.info_hash,
                            our_id_);
   peer_manager.start();
@@ -63,7 +62,7 @@ TorrentMetadata TorrentClient::parse_torrent_file(
   std::string info_hash = checksum.final();
 
   return TorrentMetadata{announce_url, piece_hashes, piece_length,
-                         total_length, output_file,  hex_decode(info_hash)};
+                         total_length, output_file,  info_hash};
 }
 
 }  // namespace simpletorrent

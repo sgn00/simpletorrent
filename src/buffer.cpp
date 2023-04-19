@@ -1,5 +1,7 @@
 #include "simpletorrent/Buffer.h"
 
+#include <iostream>
+
 namespace simpletorrent {
 
 Buffer::Buffer(uint32_t block_length) : block_length_(block_length) {}
@@ -31,7 +33,8 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
   return true;
 }
 
-uint32_t Buffer::get_block_index_to_retrieve(uint32_t piece_index) const {
+std::optional<uint32_t> Buffer::get_block_index_to_retrieve(
+    uint32_t piece_index) const {
   uint32_t buffer_index = piece_buffer_map_.at(piece_index);
   const auto& blocks_downloaded = buffer_.at(buffer_index).blocks_downloaded;
   for (size_t i = 0; i < blocks_downloaded.size(); i++) {
@@ -40,7 +43,7 @@ uint32_t Buffer::get_block_index_to_retrieve(uint32_t piece_index) const {
     }
   }
   // maybe should throw exception? should never occur
-  return -1;
+  return std::nullopt;
 }
 
 std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
@@ -58,6 +61,14 @@ std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
   bool completed = std::all_of(piece.blocks_downloaded.cbegin(),
                                piece.blocks_downloaded.cend(),
                                [](uint8_t i) { return i == HAVE; });
+  std::cout << "Missing blocks for piece " << piece_index << " : ";
+  for (size_t j = 0; j < piece.blocks_downloaded.size(); j++) {
+    if (piece.blocks_downloaded[j] != HAVE) {
+      std::cout << j << ",";
+    }
+  }
+  std::cout << "Completed: " << completed << std::endl;
+  std::cout << std::endl;
   if (!completed) {
     std::string empty;
     return {false, empty};
@@ -72,7 +83,7 @@ bool Buffer::has_piece(uint32_t piece_index) const {
 void Buffer::remove_piece_from_buffer(uint32_t piece_index) {
   int buffer_index = piece_buffer_map_.at(piece_index);
   buffer_[buffer_index].empty = true;
-  piece_buffer_map_.erase(buffer_index);
+  piece_buffer_map_.erase(piece_index);
 }
 
 }  // namespace simpletorrent

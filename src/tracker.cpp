@@ -3,6 +3,8 @@
 #include <arpa/inet.h>
 #include <cpr/cpr.h>
 
+#include "simpletorrent/Util.h"
+
 namespace simpletorrent {
 
 Tracker::Tracker(const std::string& announce_url, const std::string& info_hash,
@@ -22,7 +24,7 @@ bool Tracker::update_peers() {
 
 std::optional<bencode::data> Tracker::send_request() const {
   auto parameters = cpr::Parameters{
-      {"info_hash", info_hash_},
+      {"info_hash", hex_decode(info_hash_)},
       {"peer_id", our_id_},
       {"port", std::to_string(PORT)},
       {"compact", "1"},
@@ -51,7 +53,7 @@ void Tracker::parse_tracker_response(const bencode::data& response) {
         ntohs(*reinterpret_cast<const uint16_t*>(peers_string.data() + i + 4));
 
     inet_ntop(AF_INET, &ip, ip_str, INET_ADDRSTRLEN);
-    peers_.push_back({std::to_string(ip), port});
+    peers_.push_back({ip_str, port});
     // std::ostringstream peer;
     // peer << ip_str << ':' << port;
     // peers_.push_back(peer.str());

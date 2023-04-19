@@ -1,6 +1,7 @@
 #include "sha1.hpp"
 #include "simpletorrent/PieceManager.h"
 #include "simpletorrent/RarityManager.h"
+#include "simpletorrent/Util.h"
 
 namespace simpletorrent {
 
@@ -29,7 +30,7 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
   }
 
   output_file_stream_.open(output_file,
-                           std::ios::binary | std::ios::in | std::ios::out);
+                           std::ios::binary | std::ios::app | std::ios::in);
 }
 
 bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
@@ -41,8 +42,11 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
   auto [completed, completed_piece] = buffer_.write_block_to_buffer(block);
   if (completed) {
     if (is_verified_piece(piece_index, completed_piece)) {
+      std::cout << "Piece " << piece_index << " verified! writing.. "
+                << std::endl;
       save_piece(piece_index, completed_piece);
       pieces_[piece_index].completed = true;  // if verified, mark as completed
+      std::cout << "Completed piece: " << piece_index << std::endl;
     }
 
     buffer_.remove_piece_from_buffer(
@@ -54,17 +58,19 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
 
 bool PieceManager::is_verified_piece(uint32_t piece_index,
                                      const std::string& data) const {
+  std::cout << "verifying piece " << piece_index << std::endl;
   const auto& hash = pieces_.at(piece_index).piece_hash;
   SHA1 checksum;
   checksum.update(data);
   std::string piece_hash = checksum.final();
-  return piece_hash == hash;
+  return hex_decode(piece_hash) == hash;
 }
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
   output_file_stream_.seekp(file_offset);
   output_file_stream_.write(data.c_str(), data.size());
+  output_file_stream_.flush();
 }
 
 void PieceManager::update_piece_frequencies(
@@ -95,8 +101,9 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     // 3. If still no match, we try to get the first piece the peer has that has
     // not yet been downloaded if (!chosen_piece.has_value()) {
     for (size_t i = 0; i < bitfield.size(); i++) {
-      if (pieces_.at(i).completed == false && bitfield[i] == HAVE) {
+        if (!pieces_.at(i).completed && bitfield[i] == HAVE) {
         chosen_piece = std::optional<uint32_t>(i);
+        break;
       }
     }
     // }
@@ -108,21 +115,26 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     return std::nullopt;
   }
 
-  int piece_idx = chosen_piece.value();
+  uint32_t piece_index = chosen_piece.value();
   // Now we have a chosen piece, check if we need to add to buffer
   if (!in_buffer) {
-    bool added_to_buffer =
-        buffer_.add_piece_to_buffer(piece_idx, pieces_[piece_idx].num_blocks,
-                                    pieces_[piece_idx].current_piece_length);
+    bool added_to_buffer = buffer_.add_piece_to_buffer(
+        piece_index, pieces_[piece_index].num_blocks,
+        pieces_[piece_index].current_piece_length);
     if (!added_to_buffer) {  // if buffer is full, then peer will have nothing
-                             // to do
+      // to do
       return std::nullopt;
     }
   }
 
   auto block_idx_to_retrieve = buffer_.get_block_index_to_retrieve(
-      piece_idx);  // retrieve the block_idx that has not yet been downloaded
-  BlockRequest block_request(piece_idx, block_idx_to_retrieve,
+      piece_index);  // retrieve the block_idx that has not yet been downloaded
+  if (!block_idx_to_retrieve.has_value()) {
+    return std::nullopt;
+  }
+  std::cout << "block_idx_to_retrieve: " << block_idx_to_retrieve.value()
+            << std::endl;
+  BlockRequest block_request(piece_index, block_idx_to_retrieve.value(),
                              DEFAULT_BLOCK_LENGTH);
   return block_request;
 }

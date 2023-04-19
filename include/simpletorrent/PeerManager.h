@@ -26,6 +26,8 @@ class PeerManager {
   std::vector<Peer> peers_;
 
   asio::io_context io_context_;
+
+  PieceManager& piece_manager_;
 };
 
 }  // namespace simpletorrent

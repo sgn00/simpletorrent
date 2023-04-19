@@ -30,8 +30,9 @@ class Peer {
   uint8_t num_in_flight_;
   uint32_t peer_num_id_;
   bool is_choked_ = true;
+  asio::io_context& io_context_;
 
-  static constexpr int MAX_IN_FLIGHT = 1;
+  static constexpr int MAX_IN_FLIGHT = 2;
 
   asio::awaitable<std::error_code> send_handshake();
 
@@ -40,6 +41,8 @@ class Peer {
   asio::awaitable<std::error_code> send_interested();
 
   asio::awaitable<std::error_code> receive_messages();
+
+  asio::awaitable<void> send_messages();
 
   asio::awaitable<std::error_code> send_block_requests();
 

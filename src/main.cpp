@@ -13,8 +13,11 @@
 using namespace simpletorrent;
 
 int main() {
-  asio::io_context io_context;
-  PieceManager pm({}, 100, 1000, "abc");
+  std::string torrent_file = "../debian-iso.torrent";
+  TorrentClient tc;
+  tc.start_download(torrent_file);
+  // asio::io_context io_context;
+  // PieceManager pm({}, 100, 1000, "abc");
 
   /*
   const std::vector<std::string>& piece_hashes,
@@ -22,10 +25,10 @@ int main() {
                const std::string& output_file);
   */
 
-  // Peer p(pm, io_context, "abc", "abc", "127.0.0.1", 8080);
+  // Peer p(pm, io_context, "abc", "abc", "127.0.0.1", 8080, 1);
   // Peer p2(pm, io_context, "abc", "abc", "52.217.95.205", 80);
   // asio::co_spawn(
-  //     io_context, [&] { return p.start(); }, asio::detached);
+  //   io_context, [&] { return p.start(); }, asio::detached);
   // asio::co_spawn(
   //     io_context, [&] { return p2.start(); }, asio::detached);
   // io_context.run();

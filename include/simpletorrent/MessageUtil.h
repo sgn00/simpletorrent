@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
 #include "Metadata.h"
@@ -35,7 +36,11 @@ inline std::vector<uint8_t> construct_message(
 
   // Payload
   message.insert(message.end(), payload.begin(), payload.end());
-
+  // for (auto& b : message) {
+  //   std::cout << b << ",";
+  // }
+  std::cout << "message len: " << message.size() << std::endl;
+  std::cout << "message " << (message[3] == 1) << std::endl;
   return message;
 }
 
