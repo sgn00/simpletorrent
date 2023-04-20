@@ -53,24 +53,39 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
   return true;
 }
 
-std::optional<uint32_t> Buffer::get_block_index_to_retrieve(
-    uint32_t piece_index) const {
+std::pair<bool, std::optional<uint32_t>> Buffer::get_block_index_to_retrieve(
+    uint32_t piece_index) {
   uint32_t buffer_index = piece_buffer_map_.at(piece_index);
-  const auto& blocks_downloaded = buffer_.at(buffer_index).blocks_downloaded;
+  auto& blocks_downloaded = buffer_.at(buffer_index).blocks_downloaded;
 
-  size_t start_index = rng_(blocks_downloaded.size());
-  size_t index = start_index;
-
-  do {
-    if (blocks_downloaded.at(index) == DONT_HAVE) {
-      return index;
+  std::optional<uint32_t> chosen_block = std::nullopt;
+  for (size_t i = 0; i < blocks_downloaded.size(); i++) {
+    if (blocks_downloaded.at(i) == DONT_HAVE) {
+      chosen_block = i;
+      blocks_downloaded[i] = REQUESTED;
+      break;
     }
+  }
 
-    index = (index + 1) % blocks_downloaded.size();
-  } while (index != start_index);
+  bool all_requested_or_completed =
+      std::all_of(blocks_downloaded.begin(), blocks_downloaded.end(),
+                  [](auto& b) { return b == REQUESTED || b == HAVE; });
 
-  // maybe should throw exception? should never occur
-  return std::nullopt;
+  return {all_requested_or_completed, chosen_block};
+
+  // size_t start_index = rng_(blocks_downloaded.size());
+  // size_t index = start_index;
+
+  // do {
+  //   if (blocks_downloaded.at(index) == DONT_HAVE) {
+  //     return index;
+  //   }
+
+  //   index = (index + 1) % blocks_downloaded.size();
+  // } while (index != start_index);
+
+  // // maybe should throw exception? should never occur
+  // return std::nullopt;
 }
 
 std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
@@ -118,6 +133,16 @@ bool Buffer::is_full() {
   //  << std::endl;
   // std::cout << "buffer size: " << buffer_.size() << std::endl;
   return piece_buffer_map_.size() == buffer_.size();
+}
+
+void Buffer::clear_all_requested(uint32_t piece_index) {
+  int buffer_index = piece_buffer_map_.at(piece_index);
+  auto& vec = buffer_[buffer_index].blocks_downloaded;
+  for (size_t i = 0; i < vec.size(); i++) {
+    if (vec[i] == REQUESTED) {
+      vec[i] = DONT_HAVE;
+    }
+  }
 }
 
 }  // namespace simpletorrent

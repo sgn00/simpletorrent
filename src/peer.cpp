@@ -300,7 +300,7 @@ asio::awaitable<void> Peer::send_messages() {
     }
 
     co_await asio::steady_timer(socket_.get_executor(),
-                                std::chrono::milliseconds(300))
+                                std::chrono::milliseconds(200))
         .async_wait(asio::use_awaitable);
   }
 

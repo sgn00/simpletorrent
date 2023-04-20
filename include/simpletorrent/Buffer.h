@@ -31,14 +31,16 @@ class Buffer {
   bool add_piece_to_buffer(uint32_t piece_idx, uint32_t num_blocks,
                            uint32_t piece_length);
 
-  std::optional<uint32_t> get_block_index_to_retrieve(
-      uint32_t piece_index) const;
+  std::pair<bool, std::optional<uint32_t>> get_block_index_to_retrieve(
+      uint32_t piece_index);
 
   std::pair<bool, const std::string&> write_block_to_buffer(const Block& block);
 
   bool has_piece(uint32_t piece_idx) const;
 
   void remove_piece_from_buffer(uint32_t piece_idx);
+
+  void clear_all_requested(uint32_t piece_index);
 
   bool is_full();
 

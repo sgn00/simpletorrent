@@ -70,6 +70,8 @@ class PieceManager {
                   const std::string& data);  // Write piece to file
 
   void remove_piece_from_buffer(uint32_t piece_index);
+
+  void remove_affinity(uint32_t piece_index);
 };
 
 }  // namespace simpletorrent

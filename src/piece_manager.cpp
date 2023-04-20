@@ -72,11 +72,7 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
 
 void PieceManager::remove_piece_from_buffer(uint32_t piece_index) {
   // remove all affinity
-  for (size_t i = 0; i < peer_piece_affinity.size(); i++) {
-    if (peer_piece_affinity.at(i) == piece_index) {
-      peer_piece_affinity[i] = NO_PIECE;
-    }
-  }
+  remove_affinity(piece_index);
   buffer_.remove_piece_from_buffer(piece_index);
 }
 
@@ -92,12 +88,9 @@ bool PieceManager::is_verified_piece(uint32_t piece_index,
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
-  std::cout << "Writing for piece index: " << piece_index << std::endl;
-  std::cout << "Piece len: " << piece_length_ << std::endl;
-  std::cout << "Writing at file_offset: " << file_offset << std::endl;
   output_file_stream_.seekp(file_offset, std::ios::beg);
   output_file_stream_.write(data.c_str(), data.size());
-  output_file_stream_.flush();
+  //  output_file_stream_.flush();
 }
 
 void PieceManager::update_piece_frequencies(
@@ -157,6 +150,14 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
       if (bitfield[piece_index] == HAVE) {  // set affinity
         chosen_piece = std::optional<uint32_t>(piece_index);
         peer_piece_affinity[peer_id] = piece_index;
+
+        if (pieces_.at(piece_index).state == ALL_REQUESTED) {
+          std::cout << "ASSIGNED AN ALL REQUESTED PIECE!!!!!!!!!!!"
+                    << std::endl;
+          buffer_.clear_all_requested(piece_index);
+          pieces_[piece_index].state = BUFFERED;
+        }
+
         break;
       }
 
@@ -170,8 +171,16 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
   }
 
   uint32_t piece_index = chosen_piece.value();
-  auto block_idx_to_retrieve = buffer_.get_block_index_to_retrieve(
-      piece_index);  // retrieve the block_idx that has not yet been downloaded
+  auto [all_requested_or_completed, block_idx_to_retrieve] =
+      buffer_.get_block_index_to_retrieve(
+          piece_index);  // retrieve the block_idx that has not yet been
+                         // downloaded
+
+  if (all_requested_or_completed) {
+    pieces_[piece_index].state = ALL_REQUESTED;
+    remove_affinity(piece_index);
+  }
+
   if (!block_idx_to_retrieve.has_value()) {  // should not really occur
     std::cout << "could not find block" << std::endl;
     return std::nullopt;
@@ -183,10 +192,6 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
   uint32_t block_len = DEFAULT_BLOCK_LENGTH;
   if (piece_index ==
       pieces_.size() - 1) {  // last piece, calculate block len specially
-    std::cout << "last piece len: " << pieces_.back().current_piece_length
-              << std::endl;
-    std::cout << "Last piece, block: " << block_idx_to_retrieve.value()
-              << std::endl;
     auto count_len = pieces_.back().current_piece_length -
                      block_idx_to_retrieve.value() * DEFAULT_BLOCK_LENGTH;
     if (count_len >= DEFAULT_BLOCK_LENGTH) {
@@ -203,6 +208,14 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
 bool PieceManager::is_download_complete() const {
   return num_completed_ == pieces_.size();
+}
+
+void PieceManager::remove_affinity(uint32_t piece_index) {
+  for (size_t i = 0; i < peer_piece_affinity.size(); i++) {
+    if (peer_piece_affinity.at(i) == piece_index) {
+      peer_piece_affinity[i] = NO_PIECE;
+    }
+  }
 }
 
 }  // namespace simpletorrent
