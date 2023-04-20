@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include "sha1.hpp"
 #include "simpletorrent/PieceManager.h"
 #include "simpletorrent/RarityManager.h"
@@ -33,8 +35,12 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
         static_cast<uint32_t>(num_blocks), NOT_STARTED});
   }
 
-  output_file_stream_.open(output_file,
-                           std::ios::binary | std::ios::app | std::ios::in);
+  std::ofstream create_file(output_file, std::ios::binary | std::ios::out);
+
+  // Step 2: Close the ofstream
+  create_file.close();
+  std::filesystem::resize_file(output_file, total_length_);
+  output_file_stream_.open(output_file, std::ios::binary | std::ios::out);
 }
 
 bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
@@ -86,7 +92,10 @@ bool PieceManager::is_verified_piece(uint32_t piece_index,
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
-  output_file_stream_.seekp(file_offset);
+  std::cout << "Writing for piece index: " << piece_index << std::endl;
+  std::cout << "Piece len: " << piece_length_ << std::endl;
+  std::cout << "Writing at file_offset: " << file_offset << std::endl;
+  output_file_stream_.seekp(file_offset, std::ios::beg);
   output_file_stream_.write(data.c_str(), data.size());
   output_file_stream_.flush();
 }
