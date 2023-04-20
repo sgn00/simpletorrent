@@ -39,8 +39,6 @@ inline std::vector<uint8_t> construct_message(
   // for (auto& b : message) {
   //   std::cout << b << ",";
   // }
-  std::cout << "message len: " << message.size() << std::endl;
-  std::cout << "message " << (message[3] == 1) << std::endl;
   return message;
 }
 

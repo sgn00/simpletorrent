@@ -2,9 +2,18 @@
 
 #include <iostream>
 
+#include "simpletorrent/FastRandom.h"
+
 namespace simpletorrent {
 
-Buffer::Buffer(uint32_t block_length) : block_length_(block_length) {}
+Buffer::Buffer(uint32_t block_length, uint32_t piece_length)
+    : block_length_(block_length), normal_piece_length_(piece_length) {
+  buffer_.reserve(DEFAULT_BUFFER_SIZE);
+  uint32_t normal_num_blocks = piece_length / block_length;
+  for (size_t i = 0; i < DEFAULT_BUFFER_SIZE; i++) {
+    buffer_.push_back(BufferPiece(normal_num_blocks, normal_piece_length_));
+  }
+}
 
 std::vector<uint32_t> Buffer::get_pieces_in_buffer() const {
   std::vector<uint32_t> res;
@@ -28,7 +37,18 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
       break;
     }
   }
-  buffer_[empty_idx] = BufferPiece(piece_index, num_blocks, piece_length);
+
+  // set up this buffer piece properly
+  auto& buffer_piece = buffer_[empty_idx];
+  buffer_piece.blocks_downloaded.resize(num_blocks);
+  buffer_piece.piece_index = piece_index;
+  buffer_piece.data.resize(piece_length);
+  buffer_piece.empty = false;
+  for (size_t i = 0; i < buffer_piece.blocks_downloaded.size(); i++) {
+    buffer_piece.blocks_downloaded[i] = DONT_HAVE;
+  }
+
+  // map to our piece_buffer_map
   piece_buffer_map_[piece_index] = empty_idx;
   return true;
 }
@@ -37,11 +57,18 @@ std::optional<uint32_t> Buffer::get_block_index_to_retrieve(
     uint32_t piece_index) const {
   uint32_t buffer_index = piece_buffer_map_.at(piece_index);
   const auto& blocks_downloaded = buffer_.at(buffer_index).blocks_downloaded;
-  for (size_t i = 0; i < blocks_downloaded.size(); i++) {
-    if (blocks_downloaded.at(i) == DONT_HAVE) {
-      return i;
+
+  size_t start_index = rng_(blocks_downloaded.size());
+  size_t index = start_index;
+
+  do {
+    if (blocks_downloaded.at(index) == DONT_HAVE) {
+      return index;
     }
-  }
+
+    index = (index + 1) % blocks_downloaded.size();
+  } while (index != start_index);
+
   // maybe should throw exception? should never occur
   return std::nullopt;
 }
@@ -61,14 +88,14 @@ std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
   bool completed = std::all_of(piece.blocks_downloaded.cbegin(),
                                piece.blocks_downloaded.cend(),
                                [](uint8_t i) { return i == HAVE; });
-  std::cout << "Missing blocks for piece " << piece_index << " : ";
-  for (size_t j = 0; j < piece.blocks_downloaded.size(); j++) {
-    if (piece.blocks_downloaded[j] != HAVE) {
-      std::cout << j << ",";
-    }
-  }
-  std::cout << "Completed: " << completed << std::endl;
-  std::cout << std::endl;
+  // std::cout << "Missing blocks for piece " << piece_index << " : ";
+  // for (size_t j = 0; j < piece.blocks_downloaded.size(); j++) {
+  //   if (piece.blocks_downloaded[j] != HAVE) {
+  //     std::cout << j << ",";
+  //   }
+  // }
+  // std::cout << "Completed: " << completed << std::endl;
+  // std::cout << std::endl;
   if (!completed) {
     std::string empty;
     return {false, empty};
@@ -84,6 +111,13 @@ void Buffer::remove_piece_from_buffer(uint32_t piece_index) {
   int buffer_index = piece_buffer_map_.at(piece_index);
   buffer_[buffer_index].empty = true;
   piece_buffer_map_.erase(piece_index);
+}
+
+bool Buffer::is_full() {
+  // std::cout << "piece_buffer_map size: " << piece_buffer_map_.size()
+  //  << std::endl;
+  // std::cout << "buffer size: " << buffer_.size() << std::endl;
+  return piece_buffer_map_.size() == buffer_.size();
 }
 
 }  // namespace simpletorrent

@@ -5,17 +5,16 @@
 #include <vector>
 
 #include "Constant.h"
+#include "FastRandom.h"
 #include "Metadata.h"
 
 namespace simpletorrent {
 struct BufferPiece {
-  BufferPiece() : empty(true) {}
-
-  BufferPiece(uint32_t piece_index, uint32_t num_blocks, uint32_t piece_length)
+  BufferPiece(uint32_t num_blocks, uint32_t piece_length)
       : piece_index(piece_index),
         data(piece_length, '\0'),
         blocks_downloaded(num_blocks, DONT_HAVE),
-        empty(false) {}
+        empty(true) {}
 
   uint32_t piece_index;
   std::string data;
@@ -25,7 +24,7 @@ struct BufferPiece {
 
 class Buffer {
  public:
-  Buffer(uint32_t block_length);
+  Buffer(uint32_t block_length, uint32_t piece_length);
 
   std::vector<uint32_t> get_pieces_in_buffer() const;
 
@@ -41,14 +40,19 @@ class Buffer {
 
   void remove_piece_from_buffer(uint32_t piece_idx);
 
+  bool is_full();
+
  private:
   static constexpr uint32_t DEFAULT_BUFFER_SIZE =
       32;  // max 32 piece parts in memory
-  std::array<BufferPiece, DEFAULT_BUFFER_SIZE> buffer_;
+  std::vector<BufferPiece> buffer_;
 
   std::unordered_map<uint32_t, uint32_t>
       piece_buffer_map_;  // maps piece index to buffer index
 
   uint32_t block_length_;
+  uint32_t normal_piece_length_;  // only differs for last piece
+
+  mutable FastRandom rng_;
 };
 }  // namespace simpletorrent

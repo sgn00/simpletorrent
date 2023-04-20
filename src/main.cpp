@@ -13,9 +13,10 @@
 using namespace simpletorrent;
 
 int main() {
-  std::string torrent_file = "../debian-iso.torrent";
+  std::string torrent_file = "../debian.torrent";
   TorrentClient tc;
   tc.start_download(torrent_file);
+  std::cout << "FINISHED EXITING" << std::endl;
   // asio::io_context io_context;
   // PieceManager pm({}, 100, 1000, "abc");
 

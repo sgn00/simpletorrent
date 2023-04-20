@@ -8,6 +8,7 @@
 
 #include "Buffer.h"
 #include "Constant.h"
+#include "FastRandom.h"
 #include "Metadata.h"
 #include "RarityManager.h"
 
@@ -17,7 +18,7 @@ class PieceManager {
  public:
   PieceManager(const std::vector<std::string>& piece_hashes,
                size_t piece_length, size_t total_length,
-               const std::string& output_file);
+               const std::string& output_file, uint32_t num_peers);
 
   std::optional<BlockRequest> select_next_block(
       uint32_t peer_id);  // given a peer, we need to find the rarest piece
@@ -54,6 +55,12 @@ class PieceManager {
 
   Buffer buffer_;
 
+  std::vector<int> peer_piece_affinity;
+
+  FastRandom rng_;
+
+  uint32_t num_completed_;
+
   // RarityManager rarity_manager_;
 
   bool is_verified_piece(uint32_t piece_index, const std::string& data)
@@ -61,6 +68,8 @@ class PieceManager {
 
   void save_piece(uint32_t piece_index,
                   const std::string& data);  // Write piece to file
+
+  void remove_piece_from_buffer(uint32_t piece_index);
 };
 
 }  // namespace simpletorrent

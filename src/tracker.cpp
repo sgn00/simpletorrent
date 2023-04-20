@@ -43,21 +43,58 @@ std::optional<bencode::data> Tracker::send_request() const {
 
 void Tracker::parse_tracker_response(const bencode::data& response) {
   auto response_dict = std::get<bencode::dict>(response);
-  auto peers_string = std::get<bencode::string>(response_dict.at("peers"));
+  std::cout << "got response_dict" << std::endl;
 
-  peers_.clear();
-  for (size_t i = 0; i < peers_string.size(); i += 6) {
-    char ip_str[INET_ADDRSTRLEN];
-    uint32_t ip = *reinterpret_cast<const uint32_t*>(peers_string.data() + i);
-    uint16_t port =
-        ntohs(*reinterpret_cast<const uint16_t*>(peers_string.data() + i + 4));
+  auto peer_data = response_dict.at("peers");
+  if (std::holds_alternative<bencode::list>(peer_data)) {
+    auto peer_list = std::get<bencode::list>(peer_data);
+    peers_.clear();
+    for (auto& peer : peer_list) {
+      auto peer_map = std::get<bencode::dict>(peer);
+      auto ip = std::get<bencode::string>(peer_map.at("ip"));
+      auto port = std::get<bencode::integer>(peer_map.at("port"));
+      std::cout << ip << ":" << std::to_string(port) << std::endl;
+      peers_.push_back({ip, static_cast<uint16_t>(port)});
+    }
+  } else if (std::holds_alternative<bencode::string>(peer_data)) {
+    auto peers_string = std::get<bencode::string>(peer_data);
+    peers_.clear();
+    for (size_t i = 0; i < peers_string.size(); i += 6) {
+      char ip_str[INET_ADDRSTRLEN];
+      uint32_t ip = *reinterpret_cast<const uint32_t*>(peers_string.data() + i);
+      uint16_t port = ntohs(
+          *reinterpret_cast<const uint16_t*>(peers_string.data() + i + 4));
 
-    inet_ntop(AF_INET, &ip, ip_str, INET_ADDRSTRLEN);
-    peers_.push_back({ip_str, port});
-    // std::ostringstream peer;
-    // peer << ip_str << ':' << port;
-    // peers_.push_back(peer.str());
+      inet_ntop(AF_INET, &ip, ip_str, INET_ADDRSTRLEN);
+      peers_.push_back({ip_str, port});
+    }
+  } else {
+    std::cout << "invalid peer data" << std::endl;
+    return;
   }
+
+  // auto possible = std::get<bencode::list>(response_dict.at("peers"));
+  // std::cout << possible.size() << std::endl;
+  // std::cout << "its a vector" << std::endl;
+  // for (auto& d : possible) {
+  //   if (std::holds_alternative<bencode::dict>(d)) {
+  //     std::cout << "dict" << std::endl;
+  //   } else if (std::holds_alternative<bencode::string>(d)) {
+  //     std::cout << "string" << std::endl;
+  //   } else if (std::holds_alternative<bencode::list>(d)) {
+  //     std::cout << "vector" << std::endl;
+  //   } else if (std::holds_alternative<bencode::integer>(d)) {
+  //     std::cout << "integer" << std::endl;
+  //   }
+  //   //  std::cout << std::get<bencode::string>(d) << std::endl;
+  // }
+  // auto e = std::get<bencode::dict>(possible[0]);
+  // for (auto& [k, v] : e) {
+  //   std::cout << k << std::endl;
+  // }
+
+  // auto peers_string = std::get<bencode::string>(response_dict.at("peers"));
+  // std::cout << "got peers" << std::endl;
 }
 
 }  // namespace simpletorrent
