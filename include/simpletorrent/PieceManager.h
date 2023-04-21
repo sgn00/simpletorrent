@@ -1,5 +1,7 @@
 #pragma once
 
+#include <readerwriterqueue.h>
+
 #include <fstream>
 #include <mutex>
 #include <optional>
@@ -10,7 +12,6 @@
 #include "Constant.h"
 #include "FastRandom.h"
 #include "Metadata.h"
-#include "RarityManager.h"
 
 namespace simpletorrent {
 
@@ -36,6 +37,8 @@ class PieceManager {
       int peer_id);  // on peer connection, feed this bitfield to know
                      // which peer has what piece
 
+  ~PieceManager();
+
  private:
   static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;  // 16 KiB
 
@@ -51,7 +54,7 @@ class PieceManager {
 
   std::vector<PieceMetadata> pieces_;  // needed for hash checking,
 
-  std::unordered_map<uint32_t, std::vector<uint8_t>> peers_bitfield_;
+  std::unordered_map<size_t, std::vector<uint8_t>> peers_bitfield_;
 
   Buffer buffer_;
 
@@ -61,17 +64,24 @@ class PieceManager {
 
   uint32_t num_completed_;
 
+  moodycamel::ReaderWriterQueue<std::pair<uint32_t, std::string>> write_queue_;
+
+  std::thread writer_thread_;
+
   // RarityManager rarity_manager_;
 
   bool is_verified_piece(uint32_t piece_index, const std::string& data)
       const;  // Check a piece against its hash
 
-  void save_piece(uint32_t piece_index,
-                  const std::string& data);  // Write piece to file
+  void save_piece(
+      uint32_t piece_index,
+      const std::string& data);  // Write piece to file asynchronously
 
   void remove_piece_from_buffer(uint32_t piece_index);
 
   void remove_affinity(uint32_t piece_index);
+
+  void file_writer();
 };
 
 }  // namespace simpletorrent

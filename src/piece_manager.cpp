@@ -1,8 +1,8 @@
 #include <filesystem>
+#include <thread>
 
 #include "sha1.hpp"
 #include "simpletorrent/PieceManager.h"
-#include "simpletorrent/RarityManager.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -15,7 +15,8 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
       output_file_(output_file),
       buffer_(DEFAULT_BLOCK_LENGTH, piece_length_),
       peer_piece_affinity(num_peers, NO_PIECE),
-      num_completed_(0) {
+      num_completed_(0),
+      write_queue_(5) {
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   std::cout << "total length: " << total_length << std::endl;
@@ -35,12 +36,15 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
         static_cast<uint32_t>(num_blocks), NOT_STARTED});
   }
 
-  std::ofstream create_file(output_file, std::ios::binary | std::ios::out);
+  std::ofstream new_file(output_file, std::ios::binary | std::ios::out);
 
   // Step 2: Close the ofstream
-  create_file.close();
+  new_file.close();
   std::filesystem::resize_file(output_file, total_length_);
   output_file_stream_.open(output_file, std::ios::binary | std::ios::out);
+
+  // spawn writer thread
+  writer_thread_ = std::thread([this]() { this->file_writer(); });
 }
 
 bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
@@ -56,7 +60,9 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
       std::cout << std::endl;
       std::cout << "Piece " << piece_index << " verified! writing.. "
                 << std::endl;
+
       save_piece(piece_index, completed_piece);
+
       pieces_[piece_index].state = COMPLETED;  // if verified, mark as completed
       num_completed_++;
 
@@ -78,7 +84,7 @@ void PieceManager::remove_piece_from_buffer(uint32_t piece_index) {
 
 bool PieceManager::is_verified_piece(uint32_t piece_index,
                                      const std::string& data) const {
-  std::cout << "verifying piece " << piece_index << std::endl;
+  // std::cout << "verifying piece " << piece_index << std::endl;
   const auto& hash = pieces_.at(piece_index).piece_hash;
   SHA1 checksum;
   checksum.update(data);
@@ -88,9 +94,9 @@ bool PieceManager::is_verified_piece(uint32_t piece_index,
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
-  output_file_stream_.seekp(file_offset, std::ios::beg);
-  output_file_stream_.write(data.c_str(), data.size());
-  //  output_file_stream_.flush();
+  write_queue_.enqueue(std::pair{file_offset, std::move(data)});
+  // output_file_stream_.seekp(file_offset, std::ios::beg);
+  // output_file_stream_.write(data.c_str(), data.size());
 }
 
 void PieceManager::update_piece_frequencies(
@@ -108,10 +114,12 @@ void PieceManager::update_piece_frequencies(
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
+  //  std::cout << "selecting next block" << std::endl;
   std::optional<uint32_t> chosen_piece;
 
   // 1. first check for peer piece affinity
   if (peer_piece_affinity.at(peer_id) != NO_PIECE) {
+    //  std::cout << "peer has no affinity" << std::endl;
     // std::cout << "found affinity.." << std::endl;
     // has a piece assigned to it, assigned piece must be in buffer
     chosen_piece = peer_piece_affinity.at(peer_id);
@@ -119,6 +127,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
   // 2. if no peer affinity, we decide depending if buffer is full
   if (!chosen_piece.has_value() && !buffer_.is_full()) {
+    //   std::cout << "buffer isn't full" << std::endl;
     // std::cout << "no affinity.." << std::endl;
     const auto& bitfield = peers_bitfield_[peer_id];
     // find a piece and add it to buffer
@@ -130,6 +139,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     }
     if (chosen_piece.has_value()) {
       // add to buffer and set affinity
+      //   std::cout << "adding piece to buffer" << std::endl;
       int piece_index = chosen_piece.value();
       buffer_.add_piece_to_buffer(piece_index, pieces_[piece_index].num_blocks,
                                   pieces_[piece_index].current_piece_length);
@@ -138,31 +148,36 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     }
   }
 
+  // std::cout << "stage 3" << std::endl;
+
   // 3. if stil no chosen piece, find in buffer
   if (!chosen_piece.has_value()) {
+    //  std::cout << "choose random piece from buffer" << std::endl;
     // choose random piece in buffer to fulfill
     const auto& bitfield = peers_bitfield_[peer_id];
     auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
-    int start_index = rng_(pieces_in_buffer.size());
-    int index = start_index;
-    do {
-      int piece_index = pieces_in_buffer.at(start_index);
-      if (bitfield[piece_index] == HAVE) {  // set affinity
-        chosen_piece = std::optional<uint32_t>(piece_index);
-        peer_piece_affinity[peer_id] = piece_index;
+    if (pieces_in_buffer.size() != 0) {
+      int start_index = rng_(pieces_in_buffer.size());
+      int index = start_index;
+      do {
+        int piece_index = pieces_in_buffer.at(start_index);
+        if (bitfield[piece_index] == HAVE) {  // set affinity
+          chosen_piece = std::optional<uint32_t>(piece_index);
+          peer_piece_affinity[peer_id] = piece_index;
 
-        if (pieces_.at(piece_index).state == ALL_REQUESTED) {
-          std::cout << "ASSIGNED AN ALL REQUESTED PIECE!!!!!!!!!!!"
-                    << std::endl;
-          buffer_.clear_all_requested(piece_index);
-          pieces_[piece_index].state = BUFFERED;
+          if (pieces_.at(piece_index).state == ALL_REQUESTED) {
+            std::cout << "ASSIGNED AN ALL REQUESTED PIECE!!!!!!!!!!!"
+                      << std::endl;
+            buffer_.clear_all_requested(piece_index);
+            pieces_[piece_index].state = BUFFERED;
+          }
+
+          break;
         }
 
-        break;
-      }
-
-      index = (index + 1) % pieces_in_buffer.size();
-    } while (index != start_index);
+        index = (index + 1) % pieces_in_buffer.size();
+      } while (index != start_index);
+    }
   }
 
   if (!chosen_piece.has_value()) {
@@ -170,6 +185,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     return std::nullopt;
   }
 
+  //  std::cout << "retrieving block..." << std::endl;
   uint32_t piece_index = chosen_piece.value();
   auto [all_requested_or_completed, block_idx_to_retrieve] =
       buffer_.get_block_index_to_retrieve(
@@ -201,6 +217,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
       std::cout << "special block len: " << block_len << std::endl;
     }
   }
+  // std::cout << "constructing block request" << std::endl;
   BlockRequest block_request(piece_index, block_idx_to_retrieve.value(),
                              block_len);
   return block_request;
@@ -217,5 +234,22 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
     }
   }
 }
+
+void PieceManager::file_writer() {
+  uint32_t write_count = 0;
+  while (!is_download_complete() || write_count != pieces_.size()) {
+    std::pair<size_t, std::string> value;
+    if (write_queue_.try_dequeue(value)) {
+      size_t file_offset = value.first;
+      output_file_stream_.seekp(file_offset, std::ios::beg);
+      output_file_stream_.write(value.second.c_str(), value.second.size());
+      write_count++;
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  }
+}
+
+PieceManager::~PieceManager() { writer_thread_.join(); }
 
 }  // namespace simpletorrent

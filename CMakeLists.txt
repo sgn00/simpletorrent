@@ -18,6 +18,9 @@ FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
                          GIT_TAG 0817715923c9705e68994eb52ef9df3f6845beba)
 FetchContent_MakeAvailable(cpr)
 
+FetchContent_Declare(readerwriterqueue GIT_REPOSITORY https://github.com/cameron314/readerwriterqueue
+                                        GIT_TAG 8e7627d18c2108aca178888d88514179899a044f)
+FetchContent_MakeAvailable(readerwriterqueue)
 
 file(GLOB_RECURSE SIMPLETORRENT_SOURCES "src/*.cpp" EXCLUDE "src/main.cpp")
 
@@ -27,7 +30,7 @@ message(STATUS "Source files: ${SIMPLETORRENT_SOURCES}")
 
 target_include_directories(simpletorrent_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/external/include ${asio_SOURCE_DIR}/asio/include)
 
-target_link_libraries(simpletorrent_lib PRIVATE Threads::Threads cpr::cpr)
+target_link_libraries(simpletorrent_lib PUBLIC Threads::Threads cpr::cpr readerwriterqueue)
 
 add_executable(simpletorrent src/main.cpp)
 

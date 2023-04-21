@@ -202,12 +202,15 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
     // if (ec4) {
     //   co_return ec4;
     // }
+    //   std::cout << "waiting to receive: " << peer_num_id_ << std::endl;
 
     auto [ec, n] = co_await asio::async_read(
         socket_, asio::buffer(header), asio::as_tuple(asio::use_awaitable));
     if (ec) {
       co_return ec;
     }
+
+    //  std::cout << "received header: " << peer_num_id_ << std::endl;
 
     uint32_t message_length = get_header_length(header);
     // Handle keep-alive message
@@ -225,6 +228,8 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
       co_return ec2;
     }
 
+    // std::cout << "received payload: " << peer_num_id_ << std::endl;
+
     MessageType type = static_cast<MessageType>(message_type);
 
     uint32_t payload_length = message_length - 1;
@@ -240,10 +245,10 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
     // Handle different message types
     switch (type) {
       case MessageType::Choke:
-        //   std::cout << "Received choke message" << std::endl;
+        std::cout << "Received choke message" << std::endl;
         break;
       case MessageType::Unchoke:
-        // std::cout << "Received unchoke message" << std::endl;
+        std::cout << "Received unchoke message" << std::endl;
         // Handle unchoke message
         is_choked_ = false;
         break;
@@ -260,7 +265,7 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
         // Handle have message
         break;
       case MessageType::Bitfield:
-        //  std::cout << "Received bitfield message" << std::endl;
+        std::cout << "Received bitfield message" << std::endl;
         handle_bitfield_message(payload);
         // Handle bitfield message
         break;
@@ -285,6 +290,8 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
         break;
         // std::cout << "error unknown message type" << std::endl;
     }
+
+    // std::cout << "finished receive loop: " << peer_num_id_ << std::endl;
   }
 
   std::cout << "Completed in receive message" << std::endl;
@@ -323,15 +330,26 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
 asio::awaitable<std::error_code> Peer::send_block_requests() {
   // keep attempting to send messages
   if (is_choked_) {
+    //  std::cout << "i am choked!" << std::endl;
     co_return std::error_code{};
   }
-
+  // if (num_in_flight_ == MAX_IN_FLIGHT) {
+  //   std::cout << "skipping peer: " << peer_num_id_ << std::endl;
+  // }
+  // std::cout << "no issue in send block requests" << std::endl;
   while (num_in_flight_ < MAX_IN_FLIGHT) {
+    // std::cout << "finding something to send" << std::endl;
     auto block_request = piece_manager_.select_next_block(peer_num_id_);
+    // std::cout << "found something!" << std::endl;
     if (!block_request.has_value()) {
+      //  std::cout << "nothing to send" << std::endl;
       co_return std::error_code{};
       // break;
     }
+    // std::cout << "sending block request: " <<
+    // block_request.value().piece_index
+    //           << " offset: " << block_request.value().block_offset
+    //           << " peer: " << peer_num_id_ << std::endl;
 
     auto request_message =
         message_util::construct_request_message(block_request.value());
@@ -339,6 +357,7 @@ asio::awaitable<std::error_code> Peer::send_block_requests() {
         co_await asio::async_write(socket_, asio::buffer(request_message),
                                    asio::as_tuple(asio::use_awaitable));
     if (ec) {
+      std::cout << "error writing to socket" << std::endl;
       co_return ec;
     }
 
