@@ -120,26 +120,29 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
   // 1. first check for peer piece affinity
   if (peer_piece_affinity.at(peer_id) != NO_PIECE) {
     //  std::cout << "peer has no affinity" << std::endl;
-    // std::cout << "found affinity.." << std::endl;
+    std::cout << "found affinity.." << std::endl;
     // has a piece assigned to it, assigned piece must be in buffer
     chosen_piece = peer_piece_affinity.at(peer_id);
   }
 
   // 2. if no peer affinity, we decide depending if buffer is full
   if (!chosen_piece.has_value() && !buffer_.is_full()) {
-    //   std::cout << "buffer isn't full" << std::endl;
+    std::cout << "buffer isn't full" << std::endl;
     // std::cout << "no affinity.." << std::endl;
     const auto& bitfield = peers_bitfield_[peer_id];
     // find a piece and add it to buffer
+    std::cout << "bitfield size: " << bitfield.size() << std::endl;
+    std::cout << "pieces_ size: " << pieces_.size() << std::endl;
     for (size_t i = 0; i < bitfield.size(); i++) {
       if (pieces_.at(i).state == NOT_STARTED && bitfield[i] == HAVE) {
         chosen_piece = std::optional<uint32_t>(i);
         break;
       }
     }
+    std::cout << "over here" << std::endl;
     if (chosen_piece.has_value()) {
       // add to buffer and set affinity
-      //   std::cout << "adding piece to buffer" << std::endl;
+      std::cout << "adding piece to buffer" << std::endl;
       int piece_index = chosen_piece.value();
       buffer_.add_piece_to_buffer(piece_index, pieces_[piece_index].num_blocks,
                                   pieces_[piece_index].current_piece_length);
@@ -152,7 +155,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
   // 3. if stil no chosen piece, find in buffer
   if (!chosen_piece.has_value()) {
-    //  std::cout << "choose random piece from buffer" << std::endl;
+    std::cout << "choose random piece from buffer" << std::endl;
     // choose random piece in buffer to fulfill
     const auto& bitfield = peers_bitfield_[peer_id];
     auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
@@ -238,6 +241,8 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
 void PieceManager::file_writer() {
   uint32_t write_count = 0;
   while (!is_download_complete() || write_count != pieces_.size()) {
+    std::cout << "write count: " << write_count << " pieces: " << pieces_.size()
+              << std::endl;
     std::pair<size_t, std::string> value;
     if (write_queue_.try_dequeue(value)) {
       size_t file_offset = value.first;
@@ -250,6 +255,10 @@ void PieceManager::file_writer() {
   }
 }
 
-PieceManager::~PieceManager() { writer_thread_.join(); }
+PieceManager::~PieceManager() {
+  std::cout << "starting destroying piece manager" << std::endl;
+  writer_thread_.join();
+  std::cout << "destroying piece manager" << std::endl;
+}
 
 }  // namespace simpletorrent

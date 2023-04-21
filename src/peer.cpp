@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "simpletorrent/MessageUtil.h"
-#include "simpletorrent/PeerErrorCode.h"
+#include "simpletorrent/PeerException.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -19,76 +19,70 @@ Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
       port_(port),
       num_in_flight_(0),
       peer_num_id_(peer_num_id),
-      io_context_(io_context) {}
+      io_context_(io_context),
+      continue_connection_(true) {}
 
 asio::awaitable<void> Peer::start() {
   static int peer_connected_count = 0;
+
+  asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip_address_), port_);
+
   try {
-    //  std::cout << "starting" << std::endl;
-    // std::cout << "make endpoint" << std::endl;
-
-    asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip_address_),
-                                     port_);
-    //  std::cout << "going to connect" << std::endl;
-    auto [ec] = co_await socket_.async_connect(
-        endpoint, asio::as_tuple(asio::use_awaitable));
-    //  std::cout << "done connecting" << std::endl;
-    if (ec) {
-      //  std::cout << "error connecting: " << ec << std::endl;
-      co_return;
-    } else {
-      // std::cout << "Connected!" << std::endl;
-    }
-
-    ec = co_await send_handshake();
-
-    if (ec) {
-      // std::cout << "error sending handshake: " << ec << std::endl;
-      co_return;
-    }
-    //  std::cout << "sent handshake" << std::endl;
-
-    ec = co_await receive_handshake_response();
-
-    if (ec) {
-      //   std::cout << "error receiving handshake: " << ec << std::endl;
-      co_return;
-    }
-
-    // std::cout << "received handshake" << std::endl;
-
-    ec = co_await send_interested();
-    if (ec) {
-      //   std::cout << "error during send interested: " << ec << std::endl;
-      co_return;
-    }
-
-    //  std::cout << "sent interested" << std::endl;
-
-    asio::co_spawn(
-        io_context_, [this]() { return send_messages(); }, asio::detached);
-
-    peer_connected_count++;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
-
-    ec = co_await receive_messages();
-    if (ec) {
-      //   std::cout << "error during receive messages: " << ec << std::endl;
-      co_return;
-    }
-
-    std::cout << "exiting peer " << peer_num_id_ << std::endl;
-    peer_connected_count--;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
-
+    co_await socket_.async_connect(endpoint,
+                                   asio::as_tuple(asio::use_awaitable));
   } catch (const std::exception& e) {
-    std::cout << "error: " << e.what() << std::endl;
+    std::cout << "error connecting to peer " << peer_num_id_ << ": " << e.what()
+              << std::endl;
+    co_return;
   }
+
+  try {
+    co_await send_handshake();
+  } catch (const std::exception& e) {
+    std::cout << "error sending handshake to peer " << peer_num_id_ << ": "
+              << e.what() << std::endl;
+    co_return;
+  }
+
+  try {
+    co_await receive_handshake_response();
+  } catch (const std::exception& e) {
+    std::cout << "error receiving handshake from peer " << peer_num_id_ << ": "
+              << e.what() << std::endl;
+    co_return;
+  }
+
+  try {
+    co_await send_interested();
+  } catch (const std::exception& e) {
+    std::cout << "error sending interested to peer " << peer_num_id_ << ": "
+              << e.what() << std::endl;
+    co_return;
+  }
+
+  asio::co_spawn(
+      io_context_, [this]() { return send_messages(); }, asio::detached);
+
+  peer_connected_count++;
+  std::cout << "num connected peers: " << peer_connected_count << std::endl;
+
+  try {
+    co_await receive_messages();
+  } catch (const std::exception& e) {
+    std::cout << "error during receive messages from peer " << peer_num_id_
+              << ": " << e.what() << std::endl;
+    continue_connection_ = false;
+    co_return;
+  }
+
+  std::cout << "exiting peer gracefully " << peer_num_id_ << std::endl;
+  peer_connected_count--;
+  std::cout << "num connected peers: " << peer_connected_count << std::endl;
 
   co_return;
 }
 
-asio::awaitable<std::error_code> Peer::send_handshake() {
+asio::awaitable<void> Peer::send_handshake() {
   static constexpr auto reserved_bytes = std::array<uint8_t, 8>{};
 
   std::vector<uint8_t> handshake;
@@ -112,29 +106,18 @@ asio::awaitable<std::error_code> Peer::send_handshake() {
   // 5. Peer_id
   handshake.insert(handshake.end(), binary_our_id.begin(), binary_our_id.end());
 
-  auto [ec, n] = co_await asio::async_write(
-      socket_, asio::buffer(handshake), asio::as_tuple(asio::use_awaitable));
-  co_return ec;
+  co_await asio::async_write(socket_, asio::buffer(handshake),
+                             asio::as_tuple(asio::use_awaitable));
 }
 
-asio::awaitable<std::error_code> Peer::receive_handshake_response() {
+asio::awaitable<void> Peer::receive_handshake_response() {
   std::array<uint8_t, 68> handshake_response;
-  auto [ec, n] =
-      co_await asio::async_read(socket_, asio::buffer(handshake_response),
-                                asio::as_tuple(asio::use_awaitable));
-
-  if (ec) {
-    // std::cout << "error reading handshake" << std::endl;
-    co_return ec;
-  }
+  co_await asio::async_read(socket_, asio::buffer(handshake_response),
+                            asio::as_tuple(asio::use_awaitable));
 
   bool parsed_success = parse_handshake_response(handshake_response);
-  if (parsed_success) {
-    // std::cout << "parsed handshake success" << std::endl;
-    co_return std::error_code{};
-  } else {
-    // std::cout << "parsed handshake error" << std::endl;
-    co_return PeerErrorCode::ParseHandshakeResponseFailure;
+  if (!parsed_success) {
+    throw ParseHandshakeException("could not parse handshake response");
   }
 }
 
@@ -182,33 +165,27 @@ bool Peer::parse_handshake_response(
   return true;
 }
 
-asio::awaitable<std::error_code> Peer::send_interested() {
+asio::awaitable<void> Peer::send_interested() {
   auto interested_message =
       message_util::construct_message(message_util::MessageType::Interested);
-  auto [ec, n] =
-      co_await asio::async_write(socket_, asio::buffer(interested_message),
-                                 asio::as_tuple(asio::use_awaitable));
+
+  co_await asio::async_write(socket_, asio::buffer(interested_message),
+                             asio::as_tuple(asio::use_awaitable));
   std::cout << "Sent interested message" << std::endl;
-  co_return ec;
 }
 
-asio::awaitable<std::error_code> Peer::receive_messages() {
+asio::awaitable<void> Peer::receive_messages() {
   using namespace message_util;
   std::vector<uint8_t> header(4);
 
-  // Keep attempting to read messages until download is complete
-  while (!piece_manager_.is_download_complete()) {
-    // auto ec4 = co_await send_block_requests();
-    // if (ec4) {
-    //   co_return ec4;
-    // }
-    //   std::cout << "waiting to receive: " << peer_num_id_ << std::endl;
+  asio::steady_timer timer(socket_.get_executor());
 
-    auto [ec, n] = co_await asio::async_read(
-        socket_, asio::buffer(header), asio::as_tuple(asio::use_awaitable));
-    if (ec) {
-      co_return ec;
-    }
+  // Keep attempting to read messages until download is complete
+  while (continue_connection_ && !piece_manager_.is_download_complete()) {
+    std::cout << "in receive message loop" << std::endl;
+    timer.expires_after(std::chrono::seconds(10));
+    co_await asio::async_read(socket_, asio::buffer(header),
+                              asio::as_tuple(asio::use_awaitable));
 
     //  std::cout << "received header: " << peer_num_id_ << std::endl;
 
@@ -221,12 +198,8 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
 
     // Read message type
     uint8_t message_type;
-    auto [ec2, n2] =
-        co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
-                                  asio::as_tuple(asio::use_awaitable));
-    if (ec2) {
-      co_return ec2;
-    }
+    co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
+                              asio::as_tuple(asio::use_awaitable));
 
     // std::cout << "received payload: " << peer_num_id_ << std::endl;
 
@@ -236,11 +209,8 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
 
     // Read payload
     std::vector<uint8_t> payload(payload_length);
-    auto [ec3, n3] = co_await asio::async_read(
-        socket_, asio::buffer(payload), asio::as_tuple(asio::use_awaitable));
-    if (ec3) {
-      co_return ec3;
-    }
+    co_await asio::async_read(socket_, asio::buffer(payload),
+                              asio::as_tuple(asio::use_awaitable));
 
     // Handle different message types
     switch (type) {
@@ -295,14 +265,16 @@ asio::awaitable<std::error_code> Peer::receive_messages() {
   }
 
   std::cout << "Completed in receive message" << std::endl;
-
-  co_return std::error_code{};
 }
 
 asio::awaitable<void> Peer::send_messages() {
-  while (!piece_manager_.is_download_complete()) {
-    auto ec = co_await send_block_requests();
-    if (ec) {
+  while (continue_connection_ && !piece_manager_.is_download_complete()) {
+    try {
+      co_await send_block_requests();
+    } catch (const std::exception& e) {
+      std::cout << "error during send block requests to peer " << peer_num_id_
+                << ": " << e.what() << std::endl;
+      continue_connection_ = false;
       co_return;
     }
 
@@ -327,11 +299,11 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
   piece_manager_.update_piece_frequencies(peer_bitfield, peer_num_id_);
 }
 
-asio::awaitable<std::error_code> Peer::send_block_requests() {
+asio::awaitable<void> Peer::send_block_requests() {
   // keep attempting to send messages
   if (is_choked_) {
-    //  std::cout << "i am choked!" << std::endl;
-    co_return std::error_code{};
+    std::cout << "i am choked!" << std::endl;
+    co_return;
   }
   // if (num_in_flight_ == MAX_IN_FLIGHT) {
   //   std::cout << "skipping peer: " << peer_num_id_ << std::endl;
@@ -343,7 +315,7 @@ asio::awaitable<std::error_code> Peer::send_block_requests() {
     // std::cout << "found something!" << std::endl;
     if (!block_request.has_value()) {
       //  std::cout << "nothing to send" << std::endl;
-      co_return std::error_code{};
+      co_return;
       // break;
     }
     // std::cout << "sending block request: " <<
@@ -353,18 +325,11 @@ asio::awaitable<std::error_code> Peer::send_block_requests() {
 
     auto request_message =
         message_util::construct_request_message(block_request.value());
-    auto [ec, n] =
-        co_await asio::async_write(socket_, asio::buffer(request_message),
-                                   asio::as_tuple(asio::use_awaitable));
-    if (ec) {
-      std::cout << "error writing to socket" << std::endl;
-      co_return ec;
-    }
+    co_await asio::async_write(socket_, asio::buffer(request_message),
+                               asio::as_tuple(asio::use_awaitable));
 
     num_in_flight_++;
   }
-
-  co_return std::error_code{};
 }
 
 bool Peer::handle_piece_message(const std::vector<uint8_t>& payload) {

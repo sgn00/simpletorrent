@@ -31,20 +31,21 @@ class Peer {
   uint32_t peer_num_id_;
   bool is_choked_ = true;
   asio::io_context& io_context_;
+  bool continue_connection_;
 
   static constexpr int MAX_IN_FLIGHT = 5;
 
-  asio::awaitable<std::error_code> send_handshake();
+  asio::awaitable<void> send_handshake();
 
-  asio::awaitable<std::error_code> receive_handshake_response();
+  asio::awaitable<void> receive_handshake_response();
 
-  asio::awaitable<std::error_code> send_interested();
+  asio::awaitable<void> send_interested();
 
-  asio::awaitable<std::error_code> receive_messages();
+  asio::awaitable<void> receive_messages();
 
   asio::awaitable<void> send_messages();
 
-  asio::awaitable<std::error_code> send_block_requests();
+  asio::awaitable<void> send_block_requests();
 
   bool parse_handshake_response(
       const std::array<uint8_t, 68>& handshake_response);
