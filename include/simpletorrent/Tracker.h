@@ -19,6 +19,8 @@ class Tracker {
   const std::string& get_info_hash() const;
   bool update_peers();
 
+  ~Tracker();
+
  private:
   std::optional<bencode::data> send_request() const;
   void parse_tracker_response(const bencode::data& response);

@@ -15,7 +15,8 @@ class Peer {
  public:
   Peer(PieceManager& piece_manager, asio::io_context& io_context,
        const std::string& info_hash, const std::string& our_id,
-       const std::string& ip_address, uint16_t port, uint32_t peer_num_id);
+       const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
+       uint32_t num_pieces);
 
   asio::awaitable<void> start();
 
@@ -32,6 +33,7 @@ class Peer {
   bool is_choked_ = true;
   asio::io_context& io_context_;
   bool continue_connection_;
+  uint32_t num_pieces_;
 
   static constexpr int MAX_IN_FLIGHT = 5;
 
@@ -53,5 +55,7 @@ class Peer {
   void handle_bitfield_message(const std::vector<uint8_t>& payload);
 
   bool handle_piece_message(const std::vector<uint8_t>& payload);
+
+  void set_read_timeout(int timeout_seconds, asio::steady_timer& timer);
 };
 }  // namespace simpletorrent

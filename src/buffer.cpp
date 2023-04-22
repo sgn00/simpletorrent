@@ -6,6 +6,8 @@
 
 namespace simpletorrent {
 
+Buffer::~Buffer() { std::cout << "destroying buffer" << std::endl; }
+
 Buffer::Buffer(uint32_t block_length, uint32_t piece_length)
     : block_length_(block_length), normal_piece_length_(piece_length) {
   buffer_.reserve(DEFAULT_BUFFER_SIZE);

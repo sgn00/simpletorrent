@@ -3,14 +3,17 @@
 #include <readerwriterqueue.h>
 
 #include <fstream>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Buffer.h"
 #include "Constant.h"
 #include "FastRandom.h"
+#include "Helper.h"
+#include "Helper2.h"
+#include "Helper3.h"
 #include "Metadata.h"
 
 namespace simpletorrent {
@@ -34,8 +37,8 @@ class PieceManager {
 
   void update_piece_frequencies(
       const std::vector<uint8_t>& peer_bitfield,
-      int peer_id);  // on peer connection, feed this bitfield to know
-                     // which peer has what piece
+      uint32_t peer_id);  // on peer connection, feed this bitfield to know
+                          // which peer has what piece
 
   ~PieceManager();
 
@@ -48,13 +51,15 @@ class PieceManager {
 
   std::string output_file_;
 
+  Helper helper;
+
   std::ofstream output_file_stream_;
 
-  std::mutex pieces_mutex_;
+  Helper helperA;
 
   std::vector<PieceMetadata> pieces_;  // needed for hash checking,
 
-  std::unordered_map<size_t, std::vector<uint8_t>> peers_bitfield_;
+  Helper3 helper3;
 
   Buffer buffer_;
 
@@ -67,6 +72,12 @@ class PieceManager {
   moodycamel::ReaderWriterQueue<std::pair<uint32_t, std::string>> write_queue_;
 
   std::thread writer_thread_;
+
+  std::unordered_map<uint32_t, std::vector<uint8_t>> peers_bitfield_;
+
+  Helper2 helper2;
+
+  std::unordered_set<uint32_t> pieces_left;
 
   // RarityManager rarity_manager_;
 

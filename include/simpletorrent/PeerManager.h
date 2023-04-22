@@ -12,7 +12,8 @@ class PeerManager {
  public:
   PeerManager(PieceManager& piece_manager,
               const std::vector<PeerConnInfo>& peer_ip,
-              const std::string& info_hash, const std::string& our_id);
+              const std::string& info_hash, const std::string& our_id,
+              uint32_t num_pieces);
 
   void start();
 

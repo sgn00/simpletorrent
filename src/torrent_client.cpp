@@ -11,6 +11,10 @@ namespace simpletorrent {
 
 TorrentClient::TorrentClient() { our_id_ = "ABCDEFGHIJ1234567890"; }
 
+TorrentClient::~TorrentClient() {
+  std::cout << "Destroying torrent client" << std::endl;
+}
+
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
   TorrentMetadata metadata = parse_torrent_file(torrent_file);
@@ -31,7 +35,7 @@ void TorrentClient::start_download(const std::string& torrent_file) {
       metadata.output_file, peer_conn_info.size());
 
   PeerManager peer_manager(piece_manager, peer_conn_info, metadata.info_hash,
-                           our_id_);
+                           our_id_, metadata.piece_hashes.size());
   peer_manager.start();
   std::cout << "total num pieces to download: " << metadata.piece_hashes.size()
             << std::endl;

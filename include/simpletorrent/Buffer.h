@@ -44,6 +44,8 @@ class Buffer {
 
   bool is_full();
 
+  ~Buffer();
+
  private:
   static constexpr uint32_t DEFAULT_BUFFER_SIZE =
       32;  // max 32 piece parts in memory

@@ -1,3 +1,4 @@
+#include <cassert>
 #include <filesystem>
 #include <thread>
 
@@ -23,6 +24,7 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
   size_t last_piece_length = total_length % piece_length;
   std::cout << "total num pieces: " << num_pieces << std::endl;
   for (size_t i = 0; i < num_pieces; ++i) {
+    pieces_left.insert(i);
     size_t current_piece_length =
         (i == num_pieces - 1 && last_piece_length != 0) ? last_piece_length
                                                         : piece_length;
@@ -31,9 +33,9 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
         DEFAULT_BLOCK_LENGTH;  // rounding up for integer division
     // std::cout << "piece len of piece " << i << " is " << current_piece_length
     //          << std::endl;
-    pieces_.emplace_back(PieceMetadata{
-        piece_hashes[i], static_cast<uint32_t>(current_piece_length),
-        static_cast<uint32_t>(num_blocks), NOT_STARTED});
+    pieces_.emplace_back(piece_hashes[i],
+                         static_cast<uint32_t>(current_piece_length),
+                         static_cast<uint32_t>(num_blocks), NOT_STARTED);
   }
 
   std::ofstream new_file(output_file, std::ios::binary | std::ios::out);
@@ -62,11 +64,16 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
                 << std::endl;
 
       save_piece(piece_index, completed_piece);
-
-      pieces_[piece_index].state = COMPLETED;  // if verified, mark as completed
+      assert(piece_index < pieces_.size() && "one");
+      pieces_.at(piece_index).state =
+          COMPLETED;  // if verified, mark as completed
       num_completed_++;
 
+      pieces_left.erase(piece_index);
+
       std::cout << "Num completed piece: " << num_completed_ << std::endl;
+    } else {
+      pieces_.at(piece_index).state = NOT_STARTED;
     }
 
     remove_piece_from_buffer(
@@ -85,6 +92,7 @@ void PieceManager::remove_piece_from_buffer(uint32_t piece_index) {
 bool PieceManager::is_verified_piece(uint32_t piece_index,
                                      const std::string& data) const {
   // std::cout << "verifying piece " << piece_index << std::endl;
+  assert(piece_index < pieces_.size() && "two");
   const auto& hash = pieces_.at(piece_index).piece_hash;
   SHA1 checksum;
   checksum.update(data);
@@ -100,53 +108,65 @@ void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
 }
 
 void PieceManager::update_piece_frequencies(
-    const std::vector<uint8_t>& peer_bitfield, int peer_id) {
-  peers_bitfield_[peer_id] = peer_bitfield;
+    const std::vector<uint8_t>& peer_bitfield, uint32_t peer_id) {
+  assert(peer_bitfield.size() == pieces_.size());
+  peers_bitfield_.insert({peer_id, peer_bitfield});
 
-  int count = 0;
-  for (int i = 0; i < peer_bitfield.size(); i++) {
-    if (peer_bitfield[i] == HAVE) {
-      count++;
-    }
-  }
+  // int count = 0;
+  // for (int i = 0; i < peer_bitfield.size(); i++) {
+  //   if (peer_bitfield.at(i) == HAVE) {
+  //     count++;
+  //   }
+  // }
   // std::cout << "peer has: " << count << " pieces" << std::endl;
   // rarity_manager_.update_piece_frequencies(peer_bitfield, peer_id);
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
+  if (!peers_bitfield_.count(peer_id)) {  // if peer not yet registered, ignore
+    return std::nullopt;
+  }
   //  std::cout << "selecting next block" << std::endl;
   std::optional<uint32_t> chosen_piece;
 
   // 1. first check for peer piece affinity
+  assert(peer_id < peer_piece_affinity.size() && peer_id >= 0);
   if (peer_piece_affinity.at(peer_id) != NO_PIECE) {
     //  std::cout << "peer has no affinity" << std::endl;
-    std::cout << "found affinity.." << std::endl;
+    // std::cout << "found affinity.." << std::endl;
     // has a piece assigned to it, assigned piece must be in buffer
     chosen_piece = peer_piece_affinity.at(peer_id);
   }
 
   // 2. if no peer affinity, we decide depending if buffer is full
   if (!chosen_piece.has_value() && !buffer_.is_full()) {
-    std::cout << "buffer isn't full" << std::endl;
+    // std::cout << "buffer isn't full" << std::endl;
     // std::cout << "no affinity.." << std::endl;
-    const auto& bitfield = peers_bitfield_[peer_id];
+    assert(peers_bitfield_.count(peer_id) == 1);
+    const auto& bitfield = peers_bitfield_.at(peer_id);
+    assert(bitfield.size() == pieces_.size() && "twelve");
     // find a piece and add it to buffer
-    std::cout << "bitfield size: " << bitfield.size() << std::endl;
-    std::cout << "pieces_ size: " << pieces_.size() << std::endl;
+    // std::cout << "bitfield size: " << bitfield.size() << std::endl;
+    // std::cout << "pieces_ size: " << pieces_.size() << std::endl;
     for (size_t i = 0; i < bitfield.size(); i++) {
-      if (pieces_.at(i).state == NOT_STARTED && bitfield[i] == HAVE) {
+      assert(i < pieces_.size() && "three");
+      assert(i < bitfield.size() && "nine");
+      if (pieces_.at(i).state == NOT_STARTED && bitfield.at(i) == HAVE) {
         chosen_piece = std::optional<uint32_t>(i);
         break;
       }
     }
-    std::cout << "over here" << std::endl;
+    // std::cout << "over here" << std::endl;
     if (chosen_piece.has_value()) {
       // add to buffer and set affinity
-      std::cout << "adding piece to buffer" << std::endl;
+      //  std::cout << "adding piece to buffer" << std::endl;
       int piece_index = chosen_piece.value();
-      buffer_.add_piece_to_buffer(piece_index, pieces_[piece_index].num_blocks,
-                                  pieces_[piece_index].current_piece_length);
+      assert(piece_index < pieces_.size() && "four");
+      buffer_.add_piece_to_buffer(piece_index,
+                                  pieces_.at(piece_index).num_blocks,
+                                  pieces_.at(piece_index).current_piece_length);
       pieces_.at(piece_index).state = BUFFERED;
+      assert(peer_id < peer_piece_affinity.size() && peer_id >= 0);
       peer_piece_affinity[peer_id] = piece_index;
     }
   }
@@ -155,24 +175,33 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
   // 3. if stil no chosen piece, find in buffer
   if (!chosen_piece.has_value()) {
-    std::cout << "choose random piece from buffer" << std::endl;
+    // std::cout << "choose random piece from buffer" << std::endl;
     // choose random piece in buffer to fulfill
-    const auto& bitfield = peers_bitfield_[peer_id];
+    assert(peers_bitfield_.count(peer_id) == 1);
+    const auto& bitfield = peers_bitfield_.at(peer_id);
+    assert(bitfield.size() == pieces_.size() && "thirteen");
     auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
+
     if (pieces_in_buffer.size() != 0) {
       int start_index = rng_(pieces_in_buffer.size());
+      assert(start_index >= 0 && start_index < pieces_in_buffer.size());
       int index = start_index;
+      //   std::cout << "entering loop" << std::endl;
       do {
-        int piece_index = pieces_in_buffer.at(start_index);
-        if (bitfield[piece_index] == HAVE) {  // set affinity
+        int piece_index = pieces_in_buffer.at(index);
+        //   std::cout << "piece_index: " << piece_index << std::endl;
+        //   std::cout << "bitfield size: " << bitfield.size() << std::endl;
+        assert(piece_index >= 0 && piece_index < bitfield.size() && "eleven");
+        if (bitfield.at(piece_index) == HAVE) {  // set affinity
           chosen_piece = std::optional<uint32_t>(piece_index);
+          assert(peer_piece_affinity.size() > peer_id && peer_id >= 0);
           peer_piece_affinity[peer_id] = piece_index;
-
+          assert(piece_index < pieces_.size() && "five");
           if (pieces_.at(piece_index).state == ALL_REQUESTED) {
-            std::cout << "ASSIGNED AN ALL REQUESTED PIECE!!!!!!!!!!!"
-                      << std::endl;
+            //    std::cout << "ASSIGNED AN ALL REQUESTED PIECE!!!!!!!!!!!"
+            //             << std::endl;
             buffer_.clear_all_requested(piece_index);
-            pieces_[piece_index].state = BUFFERED;
+            pieces_.at(piece_index).state = BUFFERED;
           }
 
           break;
@@ -180,8 +209,12 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
         index = (index + 1) % pieces_in_buffer.size();
       } while (index != start_index);
+
+      //  std::cout << "exiting loop" << std::endl;
     }
   }
+
+  // std::cout << "over here X" << std::endl;
 
   if (!chosen_piece.has_value()) {
     std::cout << "could not find piece.." << std::endl;
@@ -196,7 +229,8 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
                          // downloaded
 
   if (all_requested_or_completed) {
-    pieces_[piece_index].state = ALL_REQUESTED;
+    assert(piece_index < pieces_.size() && "six");
+    pieces_.at(piece_index).state = ALL_REQUESTED;
     remove_affinity(piece_index);
   }
 
@@ -217,7 +251,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
       block_len = DEFAULT_BLOCK_LENGTH;
     } else {
       block_len = count_len;
-      std::cout << "special block len: " << block_len << std::endl;
+      // std::cout << "special block len: " << block_len << std::endl;
     }
   }
   // std::cout << "constructing block request" << std::endl;
@@ -233,7 +267,7 @@ bool PieceManager::is_download_complete() const {
 void PieceManager::remove_affinity(uint32_t piece_index) {
   for (size_t i = 0; i < peer_piece_affinity.size(); i++) {
     if (peer_piece_affinity.at(i) == piece_index) {
-      peer_piece_affinity[i] = NO_PIECE;
+      peer_piece_affinity.at(i) = NO_PIECE;
     }
   }
 }
@@ -241,8 +275,9 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
 void PieceManager::file_writer() {
   uint32_t write_count = 0;
   while (!is_download_complete() || write_count != pieces_.size()) {
-    std::cout << "write count: " << write_count << " pieces: " << pieces_.size()
-              << std::endl;
+    // std::cout << "write count: " << write_count << " pieces: " <<
+    // pieces_.size()
+    //           << std::endl;
     std::pair<size_t, std::string> value;
     if (write_queue_.try_dequeue(value)) {
       size_t file_offset = value.first;
@@ -253,10 +288,29 @@ void PieceManager::file_writer() {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
+  std::cout << "trying to close output file stream" << std::endl;
+  output_file_stream_.close();
 }
 
 PieceManager::~PieceManager() {
   std::cout << "starting destroying piece manager" << std::endl;
+
+  std::cout << "unfulfilled num pieces: " << pieces_left.size() << std::endl;
+  for (auto i : pieces_left) {
+    assert(i < pieces_.size() && "seven");
+    std::cout << "Piece num: " << i << " state: " << +pieces_.at(i).state
+              << std::endl;
+  }
+  auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
+  for (auto i : pieces_in_buffer) {
+    std::cout << "piece " << i << " is in buffer" << std::endl;
+  }
+
+  std::cout << "checking peer bit field" << std::endl;
+  for (auto& [k, v] : peers_bitfield_) {
+    std::cout << "pb: " << k << ", size: " << v.size() << std::endl;
+  }
+
   writer_thread_.join();
   std::cout << "destroying piece manager" << std::endl;
 }
