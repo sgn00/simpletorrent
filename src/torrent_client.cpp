@@ -30,7 +30,7 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   auto peer_conn_info = tracker.get_peers();
   std::cout << "num peers: " << peer_conn_info.size() << std::endl;
 
-  PieceManager piece_manager = PieceManager(
+  PieceManager2 piece_manager = PieceManager2(
       metadata.piece_hashes, metadata.piece_length, metadata.total_length,
       metadata.output_file, peer_conn_info.size());
 

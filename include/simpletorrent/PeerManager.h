@@ -5,12 +5,12 @@
 
 #include "Metadata.h"
 #include "Peer.h"
-#include "PieceManager.h"
+#include "PieceManager2.h"
 
 namespace simpletorrent {
 class PeerManager {
  public:
-  PeerManager(PieceManager& piece_manager,
+  PeerManager(PieceManager2& piece_manager,
               const std::vector<PeerConnInfo>& peer_ip,
               const std::string& info_hash, const std::string& our_id,
               uint32_t num_pieces);
@@ -26,11 +26,11 @@ class PeerManager {
 
   std::string our_id_;
 
-  std::vector<Peer> peers_;
-
   asio::io_context io_context_;
 
-  PieceManager& piece_manager_;
+  PieceManager2& piece_manager_;
+
+  std::vector<Peer> peers_;
 };
 
 }  // namespace simpletorrent

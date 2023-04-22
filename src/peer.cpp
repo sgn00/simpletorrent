@@ -8,12 +8,11 @@
 
 namespace simpletorrent {
 
-Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
+Peer::Peer(PieceManager2& piece_manager, asio::io_context& io_context,
            const std::string& info_hash, const std::string& our_id,
            const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
            uint32_t num_pieces)
     : piece_manager_(piece_manager),
-      socket_(io_context),
       info_hash_(info_hash),
       our_id_(our_id),
       ip_address_(ip_address),
@@ -22,7 +21,8 @@ Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
       peer_num_id_(peer_num_id),
       io_context_(io_context),
       continue_connection_(true),
-      num_pieces_(num_pieces) {}
+      num_pieces_(num_pieces),
+      socket_(io_context) {}
 
 asio::awaitable<void> Peer::start() {
   static int peer_connected_count = 0;
@@ -138,6 +138,10 @@ bool Peer::parse_handshake_response(
 
   // Extract the protocol name length (first byte)
   uint8_t protocol_name_length = handshake_response[idx++];
+
+  if (idx + protocol_name_length > handshake_response.size()) {
+    return false;
+  }
 
   // Extract the protocol name
   std::string protocol_name(

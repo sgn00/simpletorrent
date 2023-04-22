@@ -3,7 +3,7 @@
 
 #include <asio.hpp>
 
-#include "simpletorrent/PieceManager.h"
+#include "simpletorrent/PieceManager2.h"
 
 using namespace std::literals;
 
@@ -13,7 +13,7 @@ static constexpr auto protocol_identifier = "BitTorrent protocol"sv;
 
 class Peer {
  public:
-  Peer(PieceManager& piece_manager, asio::io_context& io_context,
+  Peer(PieceManager2& piece_manager, asio::io_context& io_context,
        const std::string& info_hash, const std::string& our_id,
        const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
        uint32_t num_pieces);
@@ -21,8 +21,7 @@ class Peer {
   asio::awaitable<void> start();
 
  private:
-  PieceManager& piece_manager_;
-  asio::ip::tcp::socket socket_;
+  PieceManager2& piece_manager_;
   std::string info_hash_;
   std::string our_id_;
   std::string ip_address_;
@@ -34,6 +33,7 @@ class Peer {
   asio::io_context& io_context_;
   bool continue_connection_;
   uint32_t num_pieces_;
+  asio::ip::tcp::socket socket_;
 
   static constexpr int MAX_IN_FLIGHT = 5;
 
