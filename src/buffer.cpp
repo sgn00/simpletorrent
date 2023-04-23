@@ -1,5 +1,6 @@
 #include "simpletorrent/Buffer.h"
 
+#include <cassert>
 #include <iostream>
 
 #include "simpletorrent/FastRandom.h"
@@ -55,6 +56,7 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
 
 std::pair<bool, std::optional<uint32_t>> Buffer::get_block_index_to_retrieve(
     uint32_t piece_index) {
+  assert(piece_buffer_map_.count(piece_index) == 1);
   uint32_t buffer_index = piece_buffer_map_.at(piece_index);
   auto& blocks_downloaded = buffer_.at(buffer_index).blocks_state;
 
@@ -87,9 +89,9 @@ std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
   std::copy(block.data_begin, block.data_end,
             piece.data.begin() + block_offset);
   piece.blocks_state[block_index] = BlockState::HAVE;
-  bool completed = std::all_of(
-      piece.blocks_state.cbegin(), piece.blocks_state.cend(),
-      [](BlockState i) { return i == BlockState::HAVE; });
+  bool completed =
+      std::all_of(piece.blocks_state.cbegin(), piece.blocks_state.cend(),
+                  [](BlockState i) { return i == BlockState::HAVE; });
 
   if (!completed) {
     return {false, piece.data};
@@ -102,8 +104,7 @@ bool Buffer::should_write_block(uint32_t block_offset,
   uint32_t block_index = block_offset / block_length_;
   if (piece_buffer_map_.count(piece_index)) {
     auto buffer_index = piece_buffer_map_.at(piece_index);
-    auto block_state =
-        buffer_.at(buffer_index).blocks_state.at(block_index);
+    auto block_state = buffer_.at(buffer_index).blocks_state.at(block_index);
     return block_state == BlockState::REQUESTED ||
            block_state == BlockState::DONT_HAVE;
   } else {
@@ -112,6 +113,7 @@ bool Buffer::should_write_block(uint32_t block_offset,
 }
 
 void Buffer::remove_piece_from_buffer(uint32_t piece_index) {
+  assert(piece_buffer_map_.count(piece_index) == 1);
   int buffer_index = piece_buffer_map_.at(piece_index);
   buffer_[buffer_index].empty = true;
   piece_buffer_map_.erase(piece_index);
@@ -120,6 +122,7 @@ void Buffer::remove_piece_from_buffer(uint32_t piece_index) {
 bool Buffer::is_full() { return piece_buffer_map_.size() == buffer_.size(); }
 
 void Buffer::clear_all_requested(uint32_t piece_index) {
+  assert(piece_buffer_map_.count(piece_index) == 1);
   int buffer_index = piece_buffer_map_.at(piece_index);
   auto& vec = buffer_[buffer_index].blocks_state;
   for (size_t i = 0; i < vec.size(); i++) {

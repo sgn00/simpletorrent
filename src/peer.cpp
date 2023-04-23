@@ -232,7 +232,7 @@ asio::awaitable<void> Peer::receive_messages() {
     // Read message type
     uint8_t message_type;
 
-    set_read_timeout(1, timer);
+    set_read_timeout(3, timer);
     co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
                               asio::as_tuple(asio::use_awaitable));
 
@@ -245,7 +245,7 @@ asio::awaitable<void> Peer::receive_messages() {
     // Read payload
     std::vector<uint8_t> payload(payload_length);
 
-    set_read_timeout(1, timer);
+    set_read_timeout(3, timer);
     co_await asio::async_read(socket_, asio::buffer(payload),
                               asio::as_tuple(asio::use_awaitable));
 

@@ -16,12 +16,12 @@ namespace simpletorrent {
 class PieceManager {
  public:
   PieceManager(const std::vector<std::string>& piece_hashes,
-                size_t piece_length, size_t total_length,
-                const std::string& output_file, uint32_t max_num_peers);
+               size_t piece_length, size_t total_length,
+               const std::string& output_file);
 
   std::optional<BlockRequest> select_next_block(uint32_t peer_id);
 
-  bool add_block(uint32_t peer_id, const Block& block);
+  void add_block(uint32_t peer_id, const Block& block);
 
   bool is_download_complete() const;
 
@@ -53,6 +53,8 @@ class PieceManager {
 
   uint32_t num_pieces_completed_;
 
+  bool is_valid_block_data(const Block& block) const;
+
   bool is_verified_piece(uint32_t piece_index, const std::string& data) const;
 
   void save_piece(uint32_t piece_index, const std::string& data);
@@ -62,6 +64,14 @@ class PieceManager {
   void remove_affinity(uint32_t piece_index);
 
   void file_writer();
+
+  std::optional<uint32_t> handle_buffer_not_full_case(uint32_t peer_id);
+
+  std::optional<uint32_t> handle_buffer_full_or_no_piece_to_add(
+      uint32_t peer_id);
+
+  uint32_t calculate_block_length(uint32_t piece_index,
+                                  uint32_t block_idx_to_retrieve) const;
 };
 
 }  // namespace simpletorrent

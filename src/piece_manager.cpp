@@ -8,7 +8,7 @@ namespace simpletorrent {
 
 PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
                            size_t piece_length, size_t total_length,
-                           const std::string& output_file, uint32_t num_peers)
+                           const std::string& output_file)
     : piece_length_(piece_length),
       buffer_(DEFAULT_BLOCK_LENGTH, piece_length_),
       num_pieces_completed_(0),
@@ -60,51 +60,13 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
   // 2.If no affinity piece, and buffer is not full, try to add a piece to
   // buffer
   if (!chosen_piece.has_value() && !buffer_.is_full()) {
-    const auto& bitfield = peers_bitfield_map_.at(peer_id);
-    for (size_t i = 0; i < bitfield.size(); i++) {
-      if (pieces_.at(i).state == PieceState::NOT_STARTED &&
-          bitfield.at(i) == PeerPieceState::HAVE) {
-        chosen_piece = std::optional<uint32_t>(i);
-        break;
-      }
-    }
-
-    // we managed to find a piece we want to add to buffer
-    if (chosen_piece.has_value()) {
-      auto piece_index = chosen_piece.value();
-      // add to buffer, change piece state, and set affinity
-      buffer_.add_piece_to_buffer(piece_index,
-                                  pieces_.at(piece_index).num_blocks,
-                                  pieces_.at(piece_index).current_piece_length);
-      pieces_.at(piece_index).state = PieceState::BUFFERED;
-      peer_piece_affinity_map_[peer_id] = piece_index;
-    }
+    chosen_piece = handle_buffer_not_full_case(peer_id);
   }
 
-  // 3. if still no chosen piece - either buffer is full, or we have nothing to
-  // add to buffer
+  // 3. if still no chosen piece - either buffer is full, or we have nothing
+  // to add to buffer
   if (!chosen_piece.has_value()) {
-    const auto& bitfield = peers_bitfield_map_.at(peer_id);
-    auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
-    if (pieces_in_buffer.size() >
-        0) {  // if there is at least one piece in buffer
-      // do a random pick
-      int start_i = rng_(pieces_in_buffer.size());
-      int i = start_i;
-      do {
-        uint32_t piece_index = pieces_in_buffer.at(i);
-        if (bitfield.at(piece_index) == PeerPieceState::HAVE) {
-          chosen_piece = std::optional<uint32_t>(piece_index);
-          peer_piece_affinity_map_[peer_id] = piece_index;
-          if (pieces_.at(piece_index).state == PieceState::ALL_REQUESTED) {
-            buffer_.clear_all_requested(piece_index);
-            pieces_.at(piece_index).state = PieceState::BUFFERED;
-          }
-          break;
-        }
-        i = (i + 1) % pieces_in_buffer.size();
-      } while (i != start_i);
-    }
+    chosen_piece = handle_buffer_full_or_no_piece_to_add(peer_id);
   }
 
   if (!chosen_piece.has_value()) {
@@ -124,26 +86,39 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
     return std::nullopt;
   }
 
-  uint32_t block_len = DEFAULT_BLOCK_LENGTH;
-  if (piece_index == pieces_.size() - 1) {
-    auto count_len = pieces_.back().current_piece_length -
-                     block_idx_to_retrieve.value() * DEFAULT_BLOCK_LENGTH;
-    if (count_len >= DEFAULT_BLOCK_LENGTH) {
-      block_len = DEFAULT_BLOCK_LENGTH;
-    } else {
-      block_len = count_len;
-    }
-  }
+  uint32_t block_len =
+      calculate_block_length(piece_index, block_idx_to_retrieve.value());
 
   BlockRequest block_request(piece_index, block_idx_to_retrieve.value(),
                              block_len);
+
   return block_request;
 }
 
-bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
+bool PieceManager::is_valid_block_data(const Block& block) const {
+  auto piece_index = block.piece_index;
+  auto block_offset = block.block_offset;
+  if (piece_index >= pieces_.size()) {
+    return false;
+  }
+  if (block_offset >= pieces_.at(piece_index).current_piece_length) {
+    return false;
+  }
+
+  size_t length_remaining =
+      pieces_.at(piece_index).current_piece_length - block_offset;
+  auto len = block.data_end - block.data_begin;
+  return len <= length_remaining;
+}
+
+void PieceManager::add_block(uint32_t peer_id, const Block& block) {
+  if (!is_valid_block_data(block)) {
+    return;
+  }
+
   uint32_t piece_index = block.piece_index;
   if (!buffer_.should_write_block(block.block_offset, piece_index)) {
-    return false;
+    return;
   }
 
   auto [completed, completed_piece] = buffer_.write_block_to_buffer(block);
@@ -161,7 +136,7 @@ bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
     remove_piece_from_buffer(piece_index);
   }
 
-  return true;
+  return;
 }
 
 bool PieceManager::is_download_complete() const {
@@ -170,7 +145,6 @@ bool PieceManager::is_download_complete() const {
 
 void PieceManager::update_piece_frequencies(
     const std::vector<uint8_t>& bitfield, uint32_t peer_id) {
-  assert(bitfield.size() == pieces_.size());
   std::vector<PeerPieceState> converted(bitfield.size());
   for (size_t i = 0; i < bitfield.size(); i++) {
     if (bitfield[i] == 1) {
@@ -225,6 +199,73 @@ void PieceManager::file_writer() {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
+}
+
+std::optional<uint32_t> PieceManager::handle_buffer_not_full_case(
+    uint32_t peer_id) {
+  std::optional<uint32_t> chosen_piece;
+  const auto& bitfield = peers_bitfield_map_.at(peer_id);
+
+  // find a piece in peer bitfield that peer has, and has not been started
+  for (size_t i = 0; i < bitfield.size(); i++) {
+    if (pieces_.at(i).state == PieceState::NOT_STARTED &&
+        bitfield.at(i) == PeerPieceState::HAVE) {
+      chosen_piece = std::optional<uint32_t>(i);
+      break;
+    }
+  }
+
+  // if we found a piece, set piece state to be buffered and set peer affinity
+  if (chosen_piece.has_value()) {
+    auto piece_index = chosen_piece.value();
+    buffer_.add_piece_to_buffer(piece_index, pieces_.at(piece_index).num_blocks,
+                                pieces_.at(piece_index).current_piece_length);
+    pieces_.at(piece_index).state = PieceState::BUFFERED;
+    peer_piece_affinity_map_[peer_id] = piece_index;
+  }
+  return chosen_piece;
+}
+
+std::optional<uint32_t> PieceManager::handle_buffer_full_or_no_piece_to_add(
+    uint32_t peer_id) {
+  std::optional<uint32_t> chosen_piece;
+  const auto& bitfield = peers_bitfield_map_.at(peer_id);
+  auto pieces_in_buffer = buffer_.get_pieces_in_buffer();
+  if (pieces_in_buffer.size() >
+      0) {  // if there is at least one piece in buffer
+    // do a random pick
+    int start_i = rng_(pieces_in_buffer.size());
+    int i = start_i;
+    do {
+      uint32_t piece_index = pieces_in_buffer.at(i);
+      if (bitfield.at(piece_index) == PeerPieceState::HAVE) {
+        chosen_piece = std::optional<uint32_t>(piece_index);
+        peer_piece_affinity_map_[peer_id] = piece_index;
+        if (pieces_.at(piece_index).state == PieceState::ALL_REQUESTED) {
+          buffer_.clear_all_requested(piece_index);
+          pieces_.at(piece_index).state = PieceState::BUFFERED;
+        }
+        break;
+      }
+      i = (i + 1) % pieces_in_buffer.size();
+    } while (i != start_i);
+  }
+  return chosen_piece;
+}
+
+uint32_t PieceManager::calculate_block_length(
+    uint32_t piece_index, uint32_t block_idx_to_retrieve) const {
+  uint32_t block_len = DEFAULT_BLOCK_LENGTH;
+  if (piece_index == pieces_.size() - 1) {
+    auto count_len = pieces_.back().current_piece_length -
+                     block_idx_to_retrieve * DEFAULT_BLOCK_LENGTH;
+    if (count_len >= DEFAULT_BLOCK_LENGTH) {
+      block_len = DEFAULT_BLOCK_LENGTH;
+    } else {
+      block_len = count_len;
+    }
+  }
+  return block_len;
 }
 
 }  // namespace simpletorrent
