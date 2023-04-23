@@ -11,10 +11,6 @@ namespace simpletorrent {
 
 TorrentClient::TorrentClient() { our_id_ = "ABCDEFGHIJ1234567890"; }
 
-TorrentClient::~TorrentClient() {
-  std::cout << "Destroying torrent client" << std::endl;
-}
-
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
   TorrentMetadata metadata = parse_torrent_file(torrent_file);

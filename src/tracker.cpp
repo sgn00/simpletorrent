@@ -11,8 +11,6 @@ Tracker::Tracker(const std::string& announce_url, const std::string& info_hash,
                  const std::string& our_id)
     : announce_url_(announce_url), info_hash_(info_hash), our_id_(our_id) {}
 
-Tracker::~Tracker() { std::cout << "destroying tracker" << std::endl; }
-
 const std::vector<PeerConnInfo>& Tracker::get_peers() const { return peers_; }
 
 bool Tracker::update_peers() {

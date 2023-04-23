@@ -17,8 +17,6 @@ class PeerManager {
 
   void start();
 
-  ~PeerManager();
-
  private:
   static uint32_t peer_num_id_;
 

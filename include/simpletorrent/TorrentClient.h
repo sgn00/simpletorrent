@@ -28,8 +28,6 @@ class TorrentClient {
 
   void stop_download();
 
-  ~TorrentClient();
-
  private:
   TorrentMetadata parse_torrent_file(const std::string& torrent_file);
 

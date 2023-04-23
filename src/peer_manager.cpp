@@ -23,10 +23,6 @@ PeerManager::PeerManager(PieceManager& piece_manager,
   }
 }
 
-PeerManager::~PeerManager() {
-  std::cout << "destroying peer manager" << std::endl;
-}
-
 void PeerManager::start() {
   for (auto& peer : peers_) {
     std::cout << "spawning!" << std::endl;

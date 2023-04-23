@@ -38,7 +38,7 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
 }
 
 PieceManager::~PieceManager() {
-  std::cout << "destroying piece manager 2" << std::endl;
+  std::cout << "destroying piece manager" << std::endl;
   writer_thread_.join();
   std::cout << "joined writer thread" << std::endl;
 }
@@ -142,7 +142,7 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
 
 bool PieceManager::add_block(uint32_t peer_id, const Block& block) {
   uint32_t piece_index = block.piece_index;
-  if (!buffer_.has_piece(piece_index)) {
+  if (!buffer_.should_write_block(block.block_offset, piece_index)) {
     return false;
   }
 

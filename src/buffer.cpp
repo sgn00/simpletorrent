@@ -6,8 +6,6 @@
 
 namespace simpletorrent {
 
-Buffer::~Buffer() { std::cout << "destroying buffer" << std::endl; }
-
 Buffer::Buffer(uint32_t block_length, uint32_t piece_length)
     : block_length_(block_length), normal_piece_length_(piece_length) {
   buffer_.reserve(DEFAULT_BUFFER_SIZE);
@@ -31,7 +29,7 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
     return false;
   }
 
-  // find empty index
+  // find empty index in buffer
   int empty_idx = -1;
   for (size_t i = 0; i < buffer_.size(); i++) {
     if (buffer_.at(i).empty) {
@@ -42,12 +40,12 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
 
   // set up this buffer piece properly
   auto& buffer_piece = buffer_[empty_idx];
-  buffer_piece.blocks_downloaded.resize(num_blocks);
+  buffer_piece.blocks_state.resize(num_blocks);
   buffer_piece.piece_index = piece_index;
   buffer_piece.data.resize(piece_length);
   buffer_piece.empty = false;
-  for (size_t i = 0; i < buffer_piece.blocks_downloaded.size(); i++) {
-    buffer_piece.blocks_downloaded[i] = BlockState::DONT_HAVE;
+  for (size_t i = 0; i < buffer_piece.blocks_state.size(); i++) {
+    buffer_piece.blocks_state[i] = BlockState::DONT_HAVE;
   }
 
   // map to our piece_buffer_map
@@ -58,7 +56,7 @@ bool Buffer::add_piece_to_buffer(uint32_t piece_index, uint32_t num_blocks,
 std::pair<bool, std::optional<uint32_t>> Buffer::get_block_index_to_retrieve(
     uint32_t piece_index) {
   uint32_t buffer_index = piece_buffer_map_.at(piece_index);
-  auto& blocks_downloaded = buffer_.at(buffer_index).blocks_downloaded;
+  auto& blocks_downloaded = buffer_.at(buffer_index).blocks_state;
 
   std::optional<uint32_t> chosen_block = std::nullopt;
   for (size_t i = 0; i < blocks_downloaded.size(); i++) {
@@ -88,20 +86,29 @@ std::pair<bool, const std::string&> Buffer::write_block_to_buffer(
   // Copy from uint8_t vector to std::string
   std::copy(block.data_begin, block.data_end,
             piece.data.begin() + block_offset);
-  piece.blocks_downloaded[block_index] = BlockState::HAVE;
+  piece.blocks_state[block_index] = BlockState::HAVE;
   bool completed = std::all_of(
-      piece.blocks_downloaded.cbegin(), piece.blocks_downloaded.cend(),
+      piece.blocks_state.cbegin(), piece.blocks_state.cend(),
       [](BlockState i) { return i == BlockState::HAVE; });
 
   if (!completed) {
-    std::string empty;
-    return {false, empty};
+    return {false, piece.data};
   }
   return {true, piece.data};
 }
 
-bool Buffer::has_piece(uint32_t piece_index) const {
-  return piece_buffer_map_.count(piece_index);
+bool Buffer::should_write_block(uint32_t block_offset,
+                                uint32_t piece_index) const {
+  uint32_t block_index = block_offset / block_length_;
+  if (piece_buffer_map_.count(piece_index)) {
+    auto buffer_index = piece_buffer_map_.at(piece_index);
+    auto block_state =
+        buffer_.at(buffer_index).blocks_state.at(block_index);
+    return block_state == BlockState::REQUESTED ||
+           block_state == BlockState::DONT_HAVE;
+  } else {
+    return false;
+  }
 }
 
 void Buffer::remove_piece_from_buffer(uint32_t piece_index) {
@@ -114,7 +121,7 @@ bool Buffer::is_full() { return piece_buffer_map_.size() == buffer_.size(); }
 
 void Buffer::clear_all_requested(uint32_t piece_index) {
   int buffer_index = piece_buffer_map_.at(piece_index);
-  auto& vec = buffer_[buffer_index].blocks_downloaded;
+  auto& vec = buffer_[buffer_index].blocks_state;
   for (size_t i = 0; i < vec.size(); i++) {
     if (vec[i] == BlockState::REQUESTED) {
       vec[i] = BlockState::DONT_HAVE;
