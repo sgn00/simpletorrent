@@ -8,7 +8,7 @@
 
 namespace simpletorrent {
 
-Peer::Peer(PieceManager2& piece_manager, asio::io_context& io_context,
+Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
            const std::string& info_hash, const std::string& our_id,
            const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
            uint32_t num_pieces)
@@ -211,9 +211,9 @@ asio::awaitable<void> Peer::receive_messages() {
     // std::cout << "in receive message loop" << std::endl;
     asio::steady_timer timer(socket_.get_executor());
 
-    int timeout_seconds = 5;
+    int timeout_seconds = 10;
     if (is_choked_) {  // give 30s to be unchoked
-      timeout_seconds = 30;
+      timeout_seconds = 40;
     }
 
     set_read_timeout(timeout_seconds, timer);

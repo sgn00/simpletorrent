@@ -13,12 +13,12 @@ struct BufferPiece {
   BufferPiece(uint32_t num_blocks, uint32_t piece_length)
       : piece_index(piece_index),
         data(piece_length, '\0'),
-        blocks_downloaded(num_blocks, DONT_HAVE),
+        blocks_downloaded(num_blocks, BlockState::DONT_HAVE),
         empty(true) {}
 
   uint32_t piece_index;
   std::string data;
-  std::vector<uint8_t> blocks_downloaded;
+  std::vector<BlockState> blocks_downloaded;
   bool empty;
 };
 

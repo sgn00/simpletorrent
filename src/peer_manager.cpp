@@ -6,7 +6,7 @@ namespace simpletorrent {
 
 uint32_t PeerManager::peer_num_id_ = 0;
 
-PeerManager::PeerManager(PieceManager2& piece_manager,
+PeerManager::PeerManager(PieceManager& piece_manager,
                          const std::vector<PeerConnInfo>& peer_ips,
                          const std::string& info_hash,
                          const std::string& our_id, uint32_t num_pieces)

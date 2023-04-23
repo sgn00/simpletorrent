@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "Constant.h"
+
 namespace simpletorrent {
 
 struct PeerConnInfo {
@@ -34,6 +36,6 @@ struct PieceMetadata {  // this is in our vector of PieceMetadata, for checking
   const std::string piece_hash;
   const uint32_t current_piece_length;
   const uint32_t num_blocks;
-  uint8_t state;
+  PieceState state;
 };
 }  // namespace simpletorrent
