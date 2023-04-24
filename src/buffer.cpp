@@ -7,11 +7,12 @@
 
 namespace simpletorrent {
 
-Buffer::Buffer(uint32_t block_length, uint32_t piece_length)
+Buffer::Buffer(uint32_t block_length, uint32_t piece_length,
+               uint32_t buffer_size)
     : block_length_(block_length), normal_piece_length_(piece_length) {
-  buffer_.reserve(DEFAULT_BUFFER_SIZE);
+  buffer_.reserve(buffer_size);
   uint32_t normal_num_blocks = piece_length / block_length;
-  for (size_t i = 0; i < DEFAULT_BUFFER_SIZE; i++) {
+  for (size_t i = 0; i < buffer_size; i++) {
     buffer_.push_back(BufferPiece(normal_num_blocks, normal_piece_length_));
   }
 }

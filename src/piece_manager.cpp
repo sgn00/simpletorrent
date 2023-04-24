@@ -7,12 +7,15 @@
 namespace simpletorrent {
 
 PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
-                           size_t piece_length, size_t total_length,
-                           const std::string& output_file)
+                           size_t piece_length, uint32_t block_length,
+                           size_t total_length, const std::string& output_file,
+                           uint32_t buffer_size)
     : piece_length_(piece_length),
-      buffer_(DEFAULT_BLOCK_LENGTH, piece_length_),
+      block_length_(block_length),
+      buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       write_queue_(5) {
+  std::cout << "Block len: " << block_length_ << std::endl;
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = total_length % piece_length;
@@ -20,8 +23,8 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
     size_t current_piece_length =
         (i == num_pieces - 1 && last_piece_length != 0) ? last_piece_length
                                                         : piece_length;
-    size_t num_blocks = (current_piece_length + DEFAULT_BLOCK_LENGTH - 1) /
-                        DEFAULT_BLOCK_LENGTH;
+    size_t num_blocks =
+        (current_piece_length + block_length_ - 1) / block_length_;
     pieces_.emplace_back(
         piece_hashes.at(i), static_cast<uint32_t>(current_piece_length),
         static_cast<uint32_t>(num_blocks), PieceState::NOT_STARTED);
@@ -139,8 +142,10 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
   return;
 }
 
-bool PieceManager::is_download_complete() const {
-  return num_pieces_completed_ == pieces_.size();
+void PieceManager::set_stop_download() { stop_download = true; }
+
+bool PieceManager::continue_download() const {
+  return !stop_download && num_pieces_completed_ != pieces_.size();
 }
 
 void PieceManager::update_piece_frequencies(
@@ -188,7 +193,7 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
 
 void PieceManager::file_writer() {
   uint32_t write_count = 0;
-  while (!is_download_complete() || write_count != pieces_.size()) {
+  while (!stop_download && write_count != pieces_.size()) {
     std::pair<size_t, std::string> value;
     if (write_queue_.try_dequeue(value)) {
       size_t file_offset = value.first;
@@ -255,12 +260,12 @@ std::optional<uint32_t> PieceManager::handle_buffer_full_or_no_piece_to_add(
 
 uint32_t PieceManager::calculate_block_length(
     uint32_t piece_index, uint32_t block_idx_to_retrieve) const {
-  uint32_t block_len = DEFAULT_BLOCK_LENGTH;
+  uint32_t block_len = block_length_;
   if (piece_index == pieces_.size() - 1) {
     auto count_len = pieces_.back().current_piece_length -
-                     block_idx_to_retrieve * DEFAULT_BLOCK_LENGTH;
-    if (count_len >= DEFAULT_BLOCK_LENGTH) {
-      block_len = DEFAULT_BLOCK_LENGTH;
+                     block_idx_to_retrieve * block_length_;
+    if (count_len >= block_length_) {
+      block_len = block_length_;
     } else {
       block_len = count_len;
     }

@@ -24,7 +24,7 @@ struct BufferPiece {
 
 class Buffer {
  public:
-  Buffer(uint32_t block_length, uint32_t piece_length);
+  Buffer(uint32_t block_length, uint32_t piece_length, uint32_t buffer_size);
 
   std::vector<uint32_t> get_pieces_in_buffer() const;
 

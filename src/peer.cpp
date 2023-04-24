@@ -207,7 +207,7 @@ asio::awaitable<void> Peer::receive_messages() {
   std::vector<uint8_t> header(4);
 
   // Keep attempting to read messages until download is complete
-  while (continue_connection_ && !piece_manager_.is_download_complete()) {
+  while (continue_connection_ && piece_manager_.continue_download()) {
     // std::cout << "in receive message loop" << std::endl;
     asio::steady_timer timer(socket_.get_executor());
 
@@ -307,7 +307,7 @@ asio::awaitable<void> Peer::receive_messages() {
 }
 
 asio::awaitable<void> Peer::send_messages() {
-  while (continue_connection_ && !piece_manager_.is_download_complete()) {
+  while (continue_connection_ && piece_manager_.continue_download()) {
     try {
       co_await send_block_requests();
     } catch (const std::exception& e) {

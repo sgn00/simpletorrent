@@ -28,7 +28,8 @@ void TorrentClient::start_download(const std::string& torrent_file) {
 
   PieceManager piece_manager =
       PieceManager(metadata.piece_hashes, metadata.piece_length,
-                   metadata.total_length, metadata.output_file);
+                   PieceManager::DEFAULT_BLOCK_LENGTH, metadata.total_length,
+                   metadata.output_file, Buffer::DEFAULT_BUFFER_SIZE);
 
   PeerManager peer_manager(piece_manager, peer_conn_info, metadata.info_hash,
                            our_id_, metadata.piece_hashes.size());

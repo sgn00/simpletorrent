@@ -16,24 +16,28 @@ namespace simpletorrent {
 class PieceManager {
  public:
   PieceManager(const std::vector<std::string>& piece_hashes,
-               size_t piece_length, size_t total_length,
-               const std::string& output_file);
+               size_t piece_length, uint32_t block_length, size_t total_length,
+               const std::string& output_file, uint32_t buffer_size);
 
   std::optional<BlockRequest> select_next_block(uint32_t peer_id);
 
   void add_block(uint32_t peer_id, const Block& block);
 
-  bool is_download_complete() const;
+  void set_stop_download();
+
+  bool continue_download() const;
 
   void update_piece_frequencies(const std::vector<uint8_t>& bitfield,
                                 uint32_t peer_id);
 
+  static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
+
   ~PieceManager();
 
  private:
-  static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
-
   uint32_t piece_length_;
+
+  uint32_t block_length_;
 
   std::ofstream output_file_stream_;
 
@@ -52,6 +56,8 @@ class PieceManager {
   std::thread writer_thread_;
 
   uint32_t num_pieces_completed_;
+
+  bool stop_download;
 
   bool is_valid_block_data(const Block& block) const;
 

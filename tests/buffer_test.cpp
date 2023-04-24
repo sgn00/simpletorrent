@@ -18,7 +18,7 @@ using namespace simpletorrent;
 TEST_CASE("Buffer init") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(5, 20);
+  Buffer buffer(5, 20, Buffer::DEFAULT_BUFFER_SIZE);
   auto ret = buffer.get_pieces_in_buffer();
   REQUIRE(ret.size() == 0);
 }
@@ -26,7 +26,7 @@ TEST_CASE("Buffer init") {
 TEST_CASE("Buffer add_piece_to_buffer get_pieces_in_buffer", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
   uint32_t piece_index = 0;
   REQUIRE(buffer.add_piece_to_buffer(piece_index, piece_length / block_length,
                                      piece_length) == true);
@@ -39,7 +39,7 @@ TEST_CASE("Buffer add_piece_to_buffer get_pieces_in_buffer", "[Buffer]") {
 TEST_CASE("Buffer get_pieces_in_buffer", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
 
   uint32_t piece_index_1 = 0;
   uint32_t piece_index_2 = 2;
@@ -62,7 +62,7 @@ TEST_CASE(
     "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
 
   uint32_t piece_index = 0;
 
@@ -81,7 +81,7 @@ TEST_CASE(
     "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
 
   uint32_t piece_index = 0;
 
@@ -106,7 +106,7 @@ TEST_CASE(
 TEST_CASE("Buffer get_block_index_to_retrieve all requested", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
 
   uint32_t piece_index = 0;
 
@@ -135,7 +135,7 @@ TEST_CASE("Buffer get_block_index_to_retrieve all requested", "[Buffer]") {
 TEST_CASE("Buffer write_block_to_buffer", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
   std::vector<uint8_t> dummy_data{'a', 'b', 'c', 'd', 'e'};
   std::string expected_data;
   for (int i = 0; i < 4; i++) {
@@ -165,7 +165,7 @@ TEST_CASE("Buffer write_block_to_buffer", "[Buffer]") {
 TEST_CASE("Buffer is_full", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
   for (uint32_t i = 0; i < Buffer::DEFAULT_BUFFER_SIZE; i++) {
     buffer.add_piece_to_buffer(i, piece_length / block_length, piece_length);
   }
@@ -176,7 +176,7 @@ TEST_CASE("Buffer is_full", "[Buffer]") {
 TEST_CASE("Buffer remove_piece_from_buffer", "[Buffer]") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(block_length, piece_length);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
   for (uint32_t i = 0; i < Buffer::DEFAULT_BUFFER_SIZE; i++) {
     buffer.add_piece_to_buffer(i, piece_length / block_length, piece_length);
   }
