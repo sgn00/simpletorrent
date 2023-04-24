@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Metadata.h"
+#include "Util.h"
 
 namespace simpletorrent {
 namespace message_util {
@@ -20,6 +21,78 @@ enum class MessageType : uint8_t {
   Cancel = 8,
   Port = 9
 };
+
+inline std::optional<std::string> parse_handshake_response(
+    const std::array<uint8_t, 68>& handshake_response,
+    const std::string& info_hash) {
+  size_t idx = 0;
+
+  // Extract the protocol name length (first byte)
+  uint8_t protocol_name_length = handshake_response[idx++];
+
+  if (idx + protocol_name_length > handshake_response.size()) {
+    return std::nullopt;
+  }
+
+  // Extract the protocol name
+  std::string protocol_name(
+      handshake_response.begin() + idx,
+      handshake_response.begin() + idx + protocol_name_length);
+  idx += protocol_name_length;
+
+  if (protocol_name != protocol_identifier) {
+    return std::nullopt;
+  }
+
+  // Extract the reserved bytes
+  std::array<uint8_t, 8> reserved_bytes;
+  std::copy(handshake_response.begin() + idx,
+            handshake_response.begin() + idx + 8, reserved_bytes.begin());
+  idx += 8;
+
+  // Extract the info_hash
+  std::array<uint8_t, 20> binary_info_hash;
+  std::copy(handshake_response.begin() + idx,
+            handshake_response.begin() + idx + 20, binary_info_hash.begin());
+  idx += 20;
+
+  std::string hex_info_hash = to_hex_string(binary_info_hash);
+
+  if (hex_info_hash != info_hash) {
+    return std::nullopt;
+  }
+
+  // Extract the peer_id
+  std::array<uint8_t, 20> binary_peer_id;
+  std::copy(handshake_response.begin() + idx,
+            handshake_response.begin() + idx + 20, binary_peer_id.begin());
+
+  return to_hex_string(binary_peer_id);
+}
+
+inline std::vector<uint8_t> create_handshake(
+    const std::array<uint8_t, 8>& reserved_bytes,
+    const std::string& binary_info_hash, const std::string& our_id) {
+  std::vector<uint8_t> handshake;
+  handshake.push_back(static_cast<uint8_t>(protocol_identifier.size()));
+
+  // 2. Protocol identifier
+  handshake.insert(handshake.end(), protocol_identifier.begin(),
+                   protocol_identifier.end());
+
+  // 3. 8 reserved bytes
+  handshake.insert(handshake.end(), reserved_bytes.begin(),
+                   reserved_bytes.end());
+
+  // 4. Info_hash
+  handshake.insert(handshake.end(), binary_info_hash.begin(),
+                   binary_info_hash.end());
+
+  // 5. Peer_id
+  handshake.insert(handshake.end(), our_id.begin(), our_id.end());
+
+  return handshake;
+}
 
 inline std::vector<uint8_t> construct_message(
     MessageType type, const std::vector<uint8_t>& payload = {}) {

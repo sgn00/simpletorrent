@@ -237,16 +237,3 @@ TEST_CASE("PieceManager add_block complete one piece", "[PieceManager]") {
 
   REQUIRE(result == normal_piece);
 }
-/*
-struct BlockRequest {  // this is sent to the Peer
-
-  BlockRequest(uint32_t piece_index, uint32_t block_idx, uint32_t
-block_length) : piece_index(piece_index), block_offset(block_idx *
-block_length), block_length(block_length) {}
-
-  const uint32_t piece_index;
-  const uint32_t block_offset;
-  const uint32_t block_length;
-};
-
-*/

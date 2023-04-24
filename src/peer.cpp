@@ -26,8 +26,6 @@ Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
 
 asio::awaitable<void> Peer::start() {
   static int peer_connected_count = 0;
-  peer_connected_count++;
-  std::cout << "num connected peers: " << peer_connected_count << std::endl;
 
   asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip_address_), port_);
 
@@ -37,8 +35,6 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error connecting to peer " << peer_num_id_ << ": " << e.what()
               << std::endl;
-    peer_connected_count--;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
     co_return;
   }
 
@@ -47,8 +43,6 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error sending handshake to peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
-    peer_connected_count--;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
     co_return;
   }
 
@@ -57,10 +51,10 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error receiving handshake from peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
-    peer_connected_count--;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
     co_return;
   }
+
+  peer_connected_count++;
 
   try {
     co_await send_interested();
@@ -96,26 +90,10 @@ asio::awaitable<void> Peer::start() {
 asio::awaitable<void> Peer::send_handshake() {
   static constexpr auto reserved_bytes = std::array<uint8_t, 8>{};
 
-  std::vector<uint8_t> handshake;
   std::string binary_info_hash = hex_decode(info_hash_);
-  std::string binary_our_id = our_id_;
-  // 1. Length of the protocol identifier
-  handshake.push_back(static_cast<uint8_t>(protocol_identifier.size()));
 
-  // 2. Protocol identifier
-  handshake.insert(handshake.end(), protocol_identifier.begin(),
-                   protocol_identifier.end());
-
-  // 3. 8 reserved bytes
-  handshake.insert(handshake.end(), reserved_bytes.begin(),
-                   reserved_bytes.end());
-
-  // 4. Info_hash
-  handshake.insert(handshake.end(), binary_info_hash.begin(),
-                   binary_info_hash.end());
-
-  // 5. Peer_id
-  handshake.insert(handshake.end(), binary_our_id.begin(), binary_our_id.end());
+  auto handshake =
+      message_util::create_handshake(reserved_bytes, binary_info_hash, our_id_);
 
   co_await asio::async_write(socket_, asio::buffer(handshake),
                              asio::as_tuple(asio::use_awaitable));
@@ -126,58 +104,13 @@ asio::awaitable<void> Peer::receive_handshake_response() {
   co_await asio::async_read(socket_, asio::buffer(handshake_response),
                             asio::as_tuple(asio::use_awaitable));
   // std::cout << "Received handshake response!!!!!" << std::endl;
-  bool parsed_success = parse_handshake_response(handshake_response);
-  if (!parsed_success) {
+  auto peer_id_op =
+      message_util::parse_handshake_response(handshake_response, info_hash_);
+  if (peer_id_op.has_value()) {
+    peer_id_ = peer_id_op.value();
+  } else {
     throw ParseHandshakeException("could not parse handshake response");
   }
-}
-
-bool Peer::parse_handshake_response(
-    const std::array<uint8_t, 68>& handshake_response) {
-  size_t idx = 0;
-
-  // Extract the protocol name length (first byte)
-  uint8_t protocol_name_length = handshake_response[idx++];
-
-  if (idx + protocol_name_length > handshake_response.size()) {
-    return false;
-  }
-
-  // Extract the protocol name
-  std::string protocol_name(
-      handshake_response.begin() + idx,
-      handshake_response.begin() + idx + protocol_name_length);
-  idx += protocol_name_length;
-
-  if (protocol_name != protocol_identifier) {
-    return false;
-  }
-
-  // Extract the reserved bytes
-  std::array<uint8_t, 8> reserved_bytes;
-  std::copy(handshake_response.begin() + idx,
-            handshake_response.begin() + idx + 8, reserved_bytes.begin());
-  idx += 8;
-
-  // Extract the info_hash
-  std::array<uint8_t, 20> binary_info_hash;
-  std::copy(handshake_response.begin() + idx,
-            handshake_response.begin() + idx + 20, binary_info_hash.begin());
-  idx += 20;
-
-  std::string hex_info_hash = to_hex_string(binary_info_hash);
-
-  if (hex_info_hash != info_hash_) {
-    return false;
-  }
-
-  // Extract the peer_id
-  std::array<uint8_t, 20> binary_peer_id;
-  std::copy(handshake_response.begin() + idx,
-            handshake_response.begin() + idx + 20, binary_peer_id.begin());
-  peer_id_ = to_hex_string(binary_peer_id);
-
-  return true;
 }
 
 asio::awaitable<void> Peer::send_interested() {
@@ -212,7 +145,7 @@ asio::awaitable<void> Peer::receive_messages() {
     asio::steady_timer timer(socket_.get_executor());
 
     int timeout_seconds = 10;
-    if (is_choked_) {  // give 30s to be unchoked
+    if (is_choked_) {  // give 40s to be unchoked
       timeout_seconds = 40;
     }
 

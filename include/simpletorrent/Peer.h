@@ -49,9 +49,6 @@ class Peer {
 
   asio::awaitable<void> send_block_requests();
 
-  bool parse_handshake_response(
-      const std::array<uint8_t, 68>& handshake_response);
-
   void handle_bitfield_message(const std::vector<uint8_t>& payload);
 
   bool handle_piece_message(const std::vector<uint8_t>& payload);
