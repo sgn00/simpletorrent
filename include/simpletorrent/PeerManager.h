@@ -10,6 +10,7 @@
 namespace simpletorrent {
 class PeerManager {
  public:
+  // info hash is in hex form
   PeerManager(PieceManager& piece_manager,
               const std::vector<PeerConnInfo>& peer_ip,
               const std::string& info_hash, const std::string& our_id,

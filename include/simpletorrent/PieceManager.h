@@ -15,6 +15,7 @@
 namespace simpletorrent {
 class PieceManager {
  public:
+  // Piece hashes are in binary form
   PieceManager(const std::vector<std::string>& piece_hashes,
                size_t piece_length, uint32_t block_length, size_t total_length,
                const std::string& output_file, uint32_t buffer_size);

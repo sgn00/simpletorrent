@@ -15,7 +15,6 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       write_queue_(5) {
-  std::cout << "Block len: " << block_length_ << std::endl;
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = total_length % piece_length;
