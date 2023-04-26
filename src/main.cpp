@@ -17,6 +17,7 @@ int main() {
   TorrentClient tc;
   tc.start_download(torrent_file);
   std::cout << "FINISHED EXITING" << std::endl;
+  std::cout << "test" << std::endl;
   // asio::io_context io_context;
   // PieceManager pm({}, 100, 1000, "abc");
 
