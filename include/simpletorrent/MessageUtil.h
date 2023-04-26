@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <vector>
 
+#include "Constant.h"
 #include "Metadata.h"
 #include "Util.h"
 
@@ -40,7 +42,7 @@ inline std::optional<std::string> parse_handshake_response(
       handshake_response.begin() + idx + protocol_name_length);
   idx += protocol_name_length;
 
-  if (protocol_name != protocol_identifier) {
+  if (protocol_name != simpletorrent::protocol_identifier) {
     return std::nullopt;
   }
 

@@ -3,13 +3,12 @@
 
 #include <asio.hpp>
 
-#include "simpletorrent/PieceManager.h"
+#include "MessageUtil.h"
+#include "PieceManager.h"
 
 using namespace std::literals;
 
 namespace simpletorrent {
-
-static constexpr auto protocol_identifier = "BitTorrent protocol"sv;
 
 class Peer {
  public:
@@ -54,5 +53,11 @@ class Peer {
   bool handle_piece_message(const std::vector<uint8_t>& payload);
 
   void set_read_timeout(int timeout_seconds, asio::steady_timer& timer);
+
+  asio::awaitable<uint32_t> read_header(asio::steady_timer& timer,
+                                        std::vector<uint8_t>& header);
+
+  void handle_message(message_util::MessageType type,
+                      const std::vector<uint8_t>& payload);
 };
 }  // namespace simpletorrent

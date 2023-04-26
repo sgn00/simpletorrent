@@ -72,29 +72,6 @@ void Tracker::parse_tracker_response(const bencode::data& response) {
     std::cout << "invalid peer data" << std::endl;
     return;
   }
-
-  // auto possible = std::get<bencode::list>(response_dict.at("peers"));
-  // std::cout << possible.size() << std::endl;
-  // std::cout << "its a vector" << std::endl;
-  // for (auto& d : possible) {
-  //   if (std::holds_alternative<bencode::dict>(d)) {
-  //     std::cout << "dict" << std::endl;
-  //   } else if (std::holds_alternative<bencode::string>(d)) {
-  //     std::cout << "string" << std::endl;
-  //   } else if (std::holds_alternative<bencode::list>(d)) {
-  //     std::cout << "vector" << std::endl;
-  //   } else if (std::holds_alternative<bencode::integer>(d)) {
-  //     std::cout << "integer" << std::endl;
-  //   }
-  //   //  std::cout << std::get<bencode::string>(d) << std::endl;
-  // }
-  // auto e = std::get<bencode::dict>(possible[0]);
-  // for (auto& [k, v] : e) {
-  //   std::cout << k << std::endl;
-  // }
-
-  // auto peers_string = std::get<bencode::string>(response_dict.at("peers"));
-  // std::cout << "got peers" << std::endl;
 }
 
 }  // namespace simpletorrent

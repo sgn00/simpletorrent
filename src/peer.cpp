@@ -149,13 +149,8 @@ asio::awaitable<void> Peer::receive_messages() {
       timeout_seconds = 40;
     }
 
-    set_read_timeout(timeout_seconds, timer);
-    co_await asio::async_read(socket_, asio::buffer(header),
-                              asio::as_tuple(asio::use_awaitable));
-
-    //  std::cout << "received header: " << peer_num_id_ << std::endl;
-
-    uint32_t message_length = get_header_length(header);
+    // Read header to get message length
+    uint32_t message_length = co_await read_header(timer, header);
     // Handle keep-alive message
     if (message_length == 0) {
       std::cout << "Received keep-alive message" << std::endl;
@@ -168,8 +163,6 @@ asio::awaitable<void> Peer::receive_messages() {
     set_read_timeout(3, timer);
     co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
                               asio::as_tuple(asio::use_awaitable));
-
-    // std::cout << "received payload: " << peer_num_id_ << std::endl;
 
     MessageType type = static_cast<MessageType>(message_type);
 
@@ -184,59 +177,77 @@ asio::awaitable<void> Peer::receive_messages() {
 
     timer.cancel();
 
-    // Handle different message types
-    switch (type) {
-      case MessageType::Choke:
-        std::cout << "Received choke message" << std::endl;
-        break;
-      case MessageType::Unchoke:
-        //  std::cout << "Received unchoke message" << std::endl;
-        // Handle unchoke message
-        is_choked_ = false;
-        break;
-      case MessageType::Interested:
-        //  std::cout << "Received interested message" << std::endl;
-        // Handle interested message
-        break;
-      case MessageType::NotInterested:
-        //  std::cout << "Received not interested message" << std::endl;
-        // Handle not interested message
-        break;
-      case MessageType::Have:
-        // std::cout << "Received have message" << std::endl;
-        // Handle have message
-        break;
-      case MessageType::Bitfield:
-        std::cout << "Received bitfield message" << std::endl;
-        handle_bitfield_message(payload);
-        // Handle bitfield message
-        break;
-      case MessageType::Request:
-        //  std::cout << "Received request message" << std::endl;
-        // Handle request message
-        break;
-      case MessageType::Piece:
-        //  std::cout << "Received piece message" << std::endl;
-        // Handle piece message
-        handle_piece_message(payload);
-        break;
-      case MessageType::Cancel:
-        //  std::cout << "Received cancel message" << std::endl;
-        // Handle cancel message
-        break;
-      case MessageType::Port:
-        //   std::cout << "Received port message" << std::endl;
-        // Handle port message
-        break;
-      default:
-        break;
-        // std::cout << "error unknown message type" << std::endl;
-    }
-
-    // std::cout << "finished receive loop: " << peer_num_id_ << std::endl;
+    handle_message(type, payload);
   }
 
   std::cout << "Completed in receive message" << std::endl;
+}
+
+asio::awaitable<uint32_t> Peer::read_header(asio::steady_timer& timer,
+                                            std::vector<uint8_t>& header) {
+  int timeout_seconds = 10;
+  if (is_choked_) {  // give 40s to be unchoked
+    timeout_seconds = 40;
+  }
+
+  set_read_timeout(timeout_seconds, timer);
+  co_await asio::async_read(socket_, asio::buffer(header),
+                            asio::as_tuple(asio::use_awaitable));
+
+  co_return message_util::get_header_length(header);
+}
+
+void Peer::handle_message(message_util::MessageType type,
+                          const std::vector<uint8_t>& payload) {
+  using namespace message_util;
+  // Handle different message types
+  switch (type) {
+    case MessageType::Choke:
+      std::cout << "Received choke message" << std::endl;
+      break;
+    case MessageType::Unchoke:
+      //  std::cout << "Received unchoke message" << std::endl;
+      // Handle unchoke message
+      is_choked_ = false;
+      break;
+    case MessageType::Interested:
+      //  std::cout << "Received interested message" << std::endl;
+      // Handle interested message
+      break;
+    case MessageType::NotInterested:
+      //  std::cout << "Received not interested message" << std::endl;
+      // Handle not interested message
+      break;
+    case MessageType::Have:
+      // std::cout << "Received have message" << std::endl;
+      // Handle have message
+      break;
+    case MessageType::Bitfield:
+      std::cout << "Received bitfield message" << std::endl;
+      handle_bitfield_message(payload);
+      // Handle bitfield message
+      break;
+    case MessageType::Request:
+      //  std::cout << "Received request message" << std::endl;
+      // Handle request message
+      break;
+    case MessageType::Piece:
+      //  std::cout << "Received piece message" << std::endl;
+      // Handle piece message
+      handle_piece_message(payload);
+      break;
+    case MessageType::Cancel:
+      //  std::cout << "Received cancel message" << std::endl;
+      // Handle cancel message
+      break;
+    case MessageType::Port:
+      //   std::cout << "Received port message" << std::endl;
+      // Handle port message
+      break;
+    default:
+      break;
+      // std::cout << "error unknown message type" << std::endl;
+  }
 }
 
 asio::awaitable<void> Peer::send_messages() {
