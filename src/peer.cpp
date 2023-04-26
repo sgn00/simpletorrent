@@ -35,6 +35,7 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error connecting to peer " << peer_num_id_ << ": " << e.what()
               << std::endl;
+    continue_connection_ = false;
     co_return;
   }
 
@@ -43,6 +44,7 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error sending handshake to peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
+    continue_connection_ = false;
     co_return;
   }
 
@@ -51,6 +53,7 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error receiving handshake from peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
+    continue_connection_ = false;
     co_return;
   }
 
@@ -63,6 +66,7 @@ asio::awaitable<void> Peer::start() {
               << e.what() << std::endl;
     peer_connected_count--;
     std::cout << "num connected peers: " << peer_connected_count << std::endl;
+    continue_connection_ = false;
     co_return;
   }
 
@@ -77,6 +81,7 @@ asio::awaitable<void> Peer::start() {
     continue_connection_ = false;
     peer_connected_count--;
     std::cout << "num connected peers: " << peer_connected_count << std::endl;
+    continue_connection_ = false;
     co_return;
   }
 
@@ -335,5 +340,7 @@ bool Peer::handle_piece_message(const std::vector<uint8_t>& payload) {
   num_in_flight_--;
   return true;
 }
+
+uint32_t Peer::get_id() const { return peer_num_id_; }
 
 }  // namespace simpletorrent

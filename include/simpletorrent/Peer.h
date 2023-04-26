@@ -17,7 +17,14 @@ class Peer {
        const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
        uint32_t num_pieces);
 
+  Peer(const Peer&) = delete;
+  Peer& operator=(const Peer&) = delete;
+
+  bool continue_connection_;
+
   asio::awaitable<void> start();
+
+  uint32_t get_id() const;
 
  private:
   PieceManager& piece_manager_;
@@ -30,7 +37,6 @@ class Peer {
   uint32_t peer_num_id_;
   bool is_choked_ = true;
   asio::io_context& io_context_;
-  bool continue_connection_;
   uint32_t num_pieces_;
   asio::ip::tcp::socket socket_;
 

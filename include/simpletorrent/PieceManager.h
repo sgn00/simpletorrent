@@ -20,6 +20,9 @@ class PieceManager {
                size_t piece_length, uint32_t block_length, size_t total_length,
                const std::string& output_file, uint32_t buffer_size);
 
+  PieceManager(const PieceManager&) = delete;
+  PieceManager& operator=(const PieceManager&) = delete;
+
   std::optional<BlockRequest> select_next_block(uint32_t peer_id);
 
   void add_block(uint32_t peer_id, const Block& block);
