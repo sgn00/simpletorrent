@@ -20,11 +20,11 @@ class Peer {
   Peer(const Peer&) = delete;
   Peer& operator=(const Peer&) = delete;
 
-  bool continue_connection_;
-
   asio::awaitable<void> start();
 
   uint32_t get_id() const;
+
+  bool exited_;
 
  private:
   PieceManager& piece_manager_;
@@ -38,6 +38,7 @@ class Peer {
   bool is_choked_ = true;
   asio::io_context& io_context_;
   uint32_t num_pieces_;
+  bool continue_connection_;
   asio::ip::tcp::socket socket_;
 
   static constexpr int MAX_IN_FLIGHT = 5;

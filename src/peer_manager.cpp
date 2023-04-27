@@ -53,9 +53,9 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
     co_await asio::steady_timer(io_context_, std::chrono::seconds(10))
         .async_wait(asio::use_awaitable);
 
-    auto remove_iter = std::remove_if(
-        peers_.begin(), peers_.end(),
-        [](const auto& p) { return p->continue_connection_ == false; });
+    auto remove_iter =
+        std::partition(peers_.begin(), peers_.end(),
+                       [](const auto& p) { return !p->exited_; });
     std::cout << "REMOVING " << peers_.end() - remove_iter << " peers..."
               << std::endl;
     for (auto it = remove_iter; it != peers_.end(); it++) {
@@ -74,9 +74,10 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
         auto new_peer = std::make_unique<Peer>(
             piece_manager_, io_context_, info_hash_, our_id_,
             peer_ips_.at(i).ip, peer_ips_.at(i).port, i, num_pieces_);
-        asio::co_spawn(
-            io_context_, [&] { return new_peer->start(); }, asio::detached);
         peers_.push_back(std::move(new_peer));
+        asio::co_spawn(
+            io_context_, [&] { return peers_.back()->start(); },
+            asio::detached);
         peers_state_[i] = get_next_peer_state(peers_state_[i]);
         num_connected++;
         if (num_connected >= MAX_NUM_CONNECTED_PEERS) {
