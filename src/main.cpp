@@ -13,7 +13,7 @@
 using namespace simpletorrent;
 
 int main() {
-  std::string torrent_file = "../rick.torrent";
+  std::string torrent_file = "../debian.torrent";
   TorrentClient tc;
   tc.start_download(torrent_file);
   std::cout << "FINISHED EXITING" << std::endl;

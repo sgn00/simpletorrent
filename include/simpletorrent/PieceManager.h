@@ -34,11 +34,15 @@ class PieceManager {
   void update_piece_frequencies(const std::vector<uint8_t>& bitfield,
                                 uint32_t peer_id);
 
+  void remove_peer(uint32_t peer_id);
+
   static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
 
   ~PieceManager();
 
  private:
+  bool stop_download;
+
   uint32_t piece_length_;
 
   uint32_t block_length_;
@@ -60,8 +64,6 @@ class PieceManager {
   std::thread writer_thread_;
 
   uint32_t num_pieces_completed_;
-
-  bool stop_download;
 
   bool is_valid_block_data(const Block& block) const;
 

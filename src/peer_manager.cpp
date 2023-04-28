@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "simpletorrent/Duration.h"
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/StateTransition.h"
 
@@ -24,7 +25,6 @@ PeerManager::PeerManager(PieceManager& piece_manager,
         piece_manager, io_context_, info_hash_, our_id_, peer_conn_info.ip,
         peer_conn_info.port, i, num_pieces));
     peers_state_[i] = get_next_peer_state(PeerState::NOT_CONNECTED);
-    std::cout << "HERE" << std::endl;
     // start peers up to a max of max num connected peers.
     if (i + 1 == MAX_NUM_CONNECTED_PEERS) {
       break;
@@ -49,20 +49,21 @@ void PeerManager::start() {
 }
 
 asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
+  co_await asio::steady_timer(io_context_,
+                              std::chrono::seconds(duration::CLEANUP_TIMEOUT))
+      .async_wait(asio::use_awaitable);
   while (piece_manager_.continue_download()) {
-    co_await asio::steady_timer(io_context_, std::chrono::seconds(10))
-        .async_wait(asio::use_awaitable);
-
     // partition into exited peers, and peers which have not exited
-    auto remove_iter =
-        std::partition(peers_.begin(), peers_.end(),
-                       [](const auto& p) { return !p->exited_; });
+    auto remove_iter = std::partition(
+        peers_.begin(), peers_.end(),
+        [](const std::unique_ptr<Peer>& p) { return !p->has_exited(); });
     std::cout << "REMOVING " << peers_.end() - remove_iter << " peers..."
               << std::endl;
     // transition state for exited peers
     for (auto it = remove_iter; it != peers_.end(); it++) {
       auto& p = *it;
       auto peer_id = p->get_id();
+      piece_manager_.remove_peer(peer_id);
       auto peer_state = peers_state_.at(peer_id);
       peers_state_.at(peer_id) = get_next_peer_state(peer_state);
     }
@@ -89,12 +90,19 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
       }
     }
     if (peers_.size() == 0) {
+      std::cout << "!!!!SETTING STOP DOWNLOAD!!!!";
       piece_manager_
           .set_stop_download();  // terminate gracefully if no peers left
     }
     std::cout << "ADDED " << num_connected - old_size << " peers..."
               << std::endl;
+
+    co_await asio::steady_timer(io_context_,
+                                std::chrono::seconds(duration::CLEANUP_TIMEOUT))
+        .async_wait(asio::use_awaitable);
   }
+  std::cout << "STOPPING!!!!!!!!!!" << std::endl;
+  io_context_.stop();
 }
 
 }  // namespace simpletorrent

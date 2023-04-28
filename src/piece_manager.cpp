@@ -10,7 +10,8 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
                            size_t piece_length, uint32_t block_length,
                            size_t total_length, const std::string& output_file,
                            uint32_t buffer_size)
-    : piece_length_(piece_length),
+    : stop_download(false),
+      piece_length_(piece_length),
       block_length_(block_length),
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
@@ -143,7 +144,16 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
 
 void PieceManager::set_stop_download() { stop_download = true; }
 
+void PieceManager::remove_peer(uint32_t peer_id) {
+  peer_piece_affinity_map_.erase(peer_id);
+  peers_bitfield_map_.erase(peer_id);
+}
+
 bool PieceManager::continue_download() const {
+  auto ret = !stop_download && num_pieces_completed_ != pieces_.size();
+  if (!ret) {
+    std::cout << "DONT CONTINUE" << std::endl;
+  }
   return !stop_download && num_pieces_completed_ != pieces_.size();
 }
 
@@ -191,6 +201,7 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
 }
 
 void PieceManager::file_writer() {
+  std::cout << "writer thread spawned!!!!!!!!!" << std::endl;
   uint32_t write_count = 0;
   while (!stop_download && write_count != pieces_.size()) {
     std::pair<size_t, std::string> value;
@@ -203,6 +214,9 @@ void PieceManager::file_writer() {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
+  std::cout << "stop download: " << stop_download << std::endl;
+  std::cout << "write count: " << write_count
+            << "pieces size: " << pieces_.size() << std::endl;
 }
 
 std::optional<uint32_t> PieceManager::handle_buffer_not_full_case(

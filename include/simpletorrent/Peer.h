@@ -24,7 +24,7 @@ class Peer {
 
   uint32_t get_id() const;
 
-  bool exited_;
+  bool has_exited() const;
 
  private:
   PieceManager& piece_manager_;
@@ -40,6 +40,8 @@ class Peer {
   uint32_t num_pieces_;
   bool continue_connection_;
   asio::ip::tcp::socket socket_;
+  bool main_routine_has_exited_;
+  bool spawned_routine_has_exited_;
 
   static constexpr int MAX_IN_FLIGHT = 5;
 

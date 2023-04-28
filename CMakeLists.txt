@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # set(CMAKE_CXX_FLAGS "-O3")
 set(CMAKE_BUILD_TYPE Debug)
 
-# set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -rdynamic -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-O3")
+set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -rdynamic -g")
+# set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 
 find_package(Threads REQUIRED)
 

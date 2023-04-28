@@ -13,8 +13,7 @@ Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
            const std::string& info_hash, const std::string& our_id,
            const std::string& ip_address, uint16_t port, uint32_t peer_num_id,
            uint32_t num_pieces)
-    : exited_(false),
-      piece_manager_(piece_manager),
+    : piece_manager_(piece_manager),
       info_hash_(info_hash),
       our_id_(our_id),
       ip_address_(ip_address),
@@ -24,7 +23,13 @@ Peer::Peer(PieceManager& piece_manager, asio::io_context& io_context,
       io_context_(io_context),
       continue_connection_(true),
       num_pieces_(num_pieces),
-      socket_(io_context) {}
+      socket_(io_context),
+      main_routine_has_exited_(false),
+      spawned_routine_has_exited_(true) {}
+
+bool Peer::has_exited() const {
+  return main_routine_has_exited_ && spawned_routine_has_exited_;
+}
 
 asio::awaitable<void> Peer::start() {
   static int peer_connected_count = 0;
@@ -40,13 +45,7 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error connecting to peer " << peer_num_id_ << ": " << e.what()
               << std::endl;
-    continue_connection_ = false;
-    exited_ = true;
-    co_return;
-  }
-
-  if (!continue_connection_) {
-    exited_ = true;
+    main_routine_has_exited_ = true;
     co_return;
   }
 
@@ -55,8 +54,7 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error sending handshake to peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
-    continue_connection_ = false;
-    exited_ = true;
+    main_routine_has_exited_ = true;
     co_return;
   }
 
@@ -65,8 +63,12 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error receiving handshake from peer " << peer_num_id_ << ": "
               << e.what() << std::endl;
-    continue_connection_ = false;
-    exited_ = true;
+    main_routine_has_exited_ = true;
+    co_return;
+  }
+
+  if (!piece_manager_.continue_download()) {
+    main_routine_has_exited_ = true;
     co_return;
   }
 
@@ -79,11 +81,11 @@ asio::awaitable<void> Peer::start() {
               << e.what() << std::endl;
     peer_connected_count--;
     std::cout << "num connected peers: " << peer_connected_count << std::endl;
-    continue_connection_ = false;
-    exited_ = true;
+    main_routine_has_exited_ = true;
     co_return;
   }
 
+  spawned_routine_has_exited_ = false;
   asio::co_spawn(
       io_context_, [this]() { return send_messages(); }, asio::detached);
 
@@ -92,18 +94,13 @@ asio::awaitable<void> Peer::start() {
   } catch (const std::exception& e) {
     std::cout << "error during receive messages from peer " << peer_num_id_
               << ": " << e.what() << std::endl;
-    continue_connection_ = false;
-    peer_connected_count--;
-    std::cout << "num connected peers: " << peer_connected_count << std::endl;
-    exited_ = true;
-    co_return;
   }
 
-  std::cout << "exiting peer gracefully " << peer_num_id_ << std::endl;
+  std::cout << "exiting peer" << peer_num_id_ << std::endl;
   peer_connected_count--;
   std::cout << "num connected peers: " << peer_connected_count << std::endl;
   continue_connection_ = false;
-  exited_ = true;
+  main_routine_has_exited_ = true;
   co_return;
 }
 
@@ -212,6 +209,7 @@ asio::awaitable<uint32_t> Peer::read_header(asio::steady_timer& timer,
   set_timeout(timeout_seconds, timer);
   co_await asio::async_read(socket_, asio::buffer(header),
                             asio::as_tuple(asio::use_awaitable));
+  timer.cancel();
 
   co_return message_util::get_header_length(header);
 }
@@ -286,6 +284,7 @@ asio::awaitable<void> Peer::send_messages() {
   }
 
   std::cout << "Completed in send_messages" << std::endl;
+  spawned_routine_has_exited_ = true;
   co_return;
 }
 
