@@ -59,7 +59,7 @@ class Peer {
 
   bool handle_piece_message(const std::vector<uint8_t>& payload);
 
-  void set_read_timeout(int timeout_seconds, asio::steady_timer& timer);
+  void set_timeout(uint32_t timeout_seconds, asio::steady_timer& timer);
 
   asio::awaitable<uint32_t> read_header(asio::steady_timer& timer,
                                         std::vector<uint8_t>& header);
@@ -67,4 +67,5 @@ class Peer {
   void handle_message(message_util::MessageType type,
                       const std::vector<uint8_t>& payload);
 };
+
 }  // namespace simpletorrent

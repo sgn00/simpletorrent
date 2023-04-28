@@ -1,5 +1,6 @@
 #pragma once
 #include "Constant.h"
+#include "CustomException.h"
 
 namespace simpletorrent {
 
@@ -13,7 +14,8 @@ inline PeerState get_next_peer_state(PeerState state) {
   } else if (state == PeerState::CONNECTED_2) {
     return PeerState::DISCONNECTED_2;
   } else {
-    // throw exception
+    throw StateTransitionException(
+        "Invalid state or no state to transition to");
   }
 }
 }  // namespace simpletorrent

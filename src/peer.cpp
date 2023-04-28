@@ -2,8 +2,9 @@
 
 #include <iostream>
 
+#include "simpletorrent/CustomException.h"
+#include "simpletorrent/Duration.h"
 #include "simpletorrent/MessageUtil.h"
-#include "simpletorrent/PeerException.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -32,7 +33,7 @@ asio::awaitable<void> Peer::start() {
 
   try {
     asio::steady_timer timer(socket_.get_executor());
-    set_read_timeout(5, timer);
+    set_timeout(duration::CONNECT_TIMEOUT, timer);
     co_await socket_.async_connect(endpoint,
                                    asio::as_tuple(asio::use_awaitable));
     timer.cancel();
@@ -121,11 +122,10 @@ asio::awaitable<void> Peer::send_handshake() {
 asio::awaitable<void> Peer::receive_handshake_response() {
   std::array<uint8_t, 68> handshake_response;
   asio::steady_timer timer(socket_.get_executor());
-  set_read_timeout(5, timer);
+  set_timeout(duration::HANDSHAKE_TIMEOUT, timer);
   co_await asio::async_read(socket_, asio::buffer(handshake_response),
                             asio::as_tuple(asio::use_awaitable));
   timer.cancel();
-  // std::cout << "Received handshake response!!!!!" << std::endl;
   auto peer_id_op =
       message_util::parse_handshake_response(handshake_response, info_hash_);
   if (peer_id_op.has_value()) {
@@ -144,7 +144,7 @@ asio::awaitable<void> Peer::send_interested() {
   std::cout << "Sent interested message" << std::endl;
 }
 
-void Peer::set_read_timeout(int num_seconds, asio::steady_timer& timer) {
+void Peer::set_timeout(uint32_t num_seconds, asio::steady_timer& timer) {
   timer.expires_from_now(std::chrono::seconds(num_seconds));
   timer.async_wait([this](const asio::error_code& ec) {
     if (!ec) {
@@ -161,7 +161,8 @@ asio::awaitable<void> Peer::receive_messages() {
   using namespace message_util;
   std::vector<uint8_t> header(4);
 
-  // Keep attempting to read messages until download is complete
+  // Keep attempting to read messages until download is complete or we have been
+  // signalled to exit
   while (continue_connection_ && piece_manager_.continue_download()) {
     // std::cout << "in receive message loop" << std::endl;
     asio::steady_timer timer(socket_.get_executor());
@@ -177,9 +178,10 @@ asio::awaitable<void> Peer::receive_messages() {
     // Read message type
     uint8_t message_type;
 
-    set_read_timeout(3, timer);
+    set_timeout(duration::RECV_MSG_TIMEOUT, timer);
     co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
                               asio::as_tuple(asio::use_awaitable));
+    timer.cancel();
 
     MessageType type = static_cast<MessageType>(message_type);
 
@@ -188,7 +190,7 @@ asio::awaitable<void> Peer::receive_messages() {
     // Read payload
     std::vector<uint8_t> payload(payload_length);
 
-    set_read_timeout(3, timer);
+    set_timeout(duration::RECV_MSG_TIMEOUT, timer);
     co_await asio::async_read(socket_, asio::buffer(payload),
                               asio::as_tuple(asio::use_awaitable));
 
@@ -202,12 +204,12 @@ asio::awaitable<void> Peer::receive_messages() {
 
 asio::awaitable<uint32_t> Peer::read_header(asio::steady_timer& timer,
                                             std::vector<uint8_t>& header) {
-  int timeout_seconds = 10;
-  if (is_choked_) {  // give 40s to be unchoked
-    timeout_seconds = 40;
+  uint32_t timeout_seconds = duration::WAIT_MSG_TIMEOUT;
+  if (is_choked_) {
+    timeout_seconds = duration::CHOKE_TIMEOUT;
   }
 
-  set_read_timeout(timeout_seconds, timer);
+  set_timeout(timeout_seconds, timer);
   co_await asio::async_read(socket_, asio::buffer(header),
                             asio::as_tuple(asio::use_awaitable));
 
