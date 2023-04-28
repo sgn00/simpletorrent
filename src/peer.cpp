@@ -160,7 +160,7 @@ asio::awaitable<void> Peer::receive_messages() {
 
   // Keep attempting to read messages until download is complete or we have been
   // signalled to exit
-  while (continue_connection_ && piece_manager_.continue_download()) {
+  while (continue_connection_) {
     // std::cout << "in receive message loop" << std::endl;
     asio::steady_timer timer(socket_.get_executor());
 
@@ -268,7 +268,7 @@ void Peer::handle_message(message_util::MessageType type,
 }
 
 asio::awaitable<void> Peer::send_messages() {
-  while (continue_connection_ && piece_manager_.continue_download()) {
+  while (continue_connection_) {
     try {
       co_await send_block_requests();
     } catch (const std::exception& e) {
