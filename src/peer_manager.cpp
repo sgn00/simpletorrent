@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "simpletorrent/Duration.h"
+#include "simpletorrent/Logger.h"
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/StateTransition.h"
 
@@ -17,7 +18,6 @@ PeerManager::PeerManager(PieceManager& piece_manager,
       peers_state_(peer_ips.size(), PeerState::NOT_CONNECTED),
       peer_ips_(std::move(peer_ips)) {
   peers_.reserve(peer_ips.size());
-  std::cout << "HERE IN PEER MANAGER " << peer_ips.size() << std::endl;
   for (size_t i = 0; i < peer_ips_.size(); i++) {
     uint32_t peer_num_id = i;
     const auto& peer_conn_info = peer_ips_.at(i);
@@ -33,8 +33,8 @@ PeerManager::PeerManager(PieceManager& piece_manager,
 }
 
 void PeerManager::start() {
+  LOG_INFO("PeerManager: Initial number of peers: {}", peers_.size());
   for (auto& peer : peers_) {
-    std::cout << "spawning " << peer->get_id() << " !" << std::endl;
     asio::co_spawn(
         io_context_, [&] { return peer->start(); }, asio::detached);
   }
@@ -44,8 +44,7 @@ void PeerManager::start() {
       asio::detached);
 
   io_context_.run();
-
-  std::cout << "returned" << std::endl;
+  LOG_INFO("PeerManager: Exited io_context run");
 }
 
 asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
@@ -57,8 +56,7 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
     auto remove_iter = std::partition(
         peers_.begin(), peers_.end(),
         [](const std::unique_ptr<Peer>& p) { return !p->has_exited(); });
-    std::cout << "REMOVING " << peers_.end() - remove_iter << " peers..."
-              << std::endl;
+    LOG_INFO("PeerManager: Removing {} peers", peers_.end() - remove_iter);
     // transition state for exited peers
     for (auto it = remove_iter; it != peers_.end(); it++) {
       auto& p = *it;
@@ -90,18 +88,19 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
       }
     }
     if (peers_.size() == 0) {
-      std::cout << "!!!!SETTING STOP DOWNLOAD!!!!";
+      LOG_INFO("PeerManager: No peers left! Stopping download!");
       piece_manager_
           .set_stop_download();  // terminate gracefully if no peers left
     }
-    std::cout << "ADDED " << num_connected - old_size << " peers..."
-              << std::endl;
+
+    LOG_INFO("PeerManager: Added {} peers", num_connected - old_size);
 
     co_await asio::steady_timer(io_context_,
                                 std::chrono::seconds(duration::CLEANUP_TIMEOUT))
         .async_wait(asio::use_awaitable);
   }
-  std::cout << "STOPPING!!!!!!!!!!" << std::endl;
+
+  LOG_INFO("PeerManager: stopping!");
   io_context_.stop();
 }
 

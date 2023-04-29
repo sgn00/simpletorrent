@@ -59,7 +59,7 @@ class Peer {
 
   void handle_bitfield_message(const std::vector<uint8_t>& payload);
 
-  bool handle_piece_message(const std::vector<uint8_t>& payload);
+  void handle_piece_message(const std::vector<uint8_t>& payload);
 
   void set_timeout(uint32_t timeout_seconds, asio::steady_timer& timer);
 

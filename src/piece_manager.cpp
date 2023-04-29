@@ -17,7 +17,6 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       write_queue_(5) {
-  LOG_INFO("log test");
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = total_length % piece_length;
@@ -43,9 +42,9 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
 }
 
 PieceManager::~PieceManager() {
-  std::cout << "destroying piece manager" << std::endl;
+  LOG_INFO("PieceManager: destroying piece manager");
   writer_thread_.join();
-  std::cout << "joined writer thread" << std::endl;
+  LOG_INFO("PieceManager: joined writer thread");
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
@@ -132,10 +131,11 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       save_piece(piece_index, completed_piece);
       pieces_.at(piece_index).state = PieceState::COMPLETED;
       num_pieces_completed_++;
+      LOG_INFO("PieceManager: Completed piece {}", piece_index);
       std::cout << "Num completed piece: " << num_pieces_completed_
                 << std::endl;
     } else {
-      LOG_ERROR("Piece {} has hash mismatch", piece_index);
+      LOG_ERROR("PieceManager: Piece {} has hash mismatch", piece_index);
       pieces_.at(piece_index).state = PieceState::NOT_STARTED;
     }
 
@@ -148,15 +148,12 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
 void PieceManager::set_stop_download() { stop_download = true; }
 
 void PieceManager::remove_peer(uint32_t peer_id) {
+  LOG_INFO("PieceManager: removing Peer {}", peer_id);
   peer_piece_affinity_map_.erase(peer_id);
   peers_bitfield_map_.erase(peer_id);
 }
 
 bool PieceManager::continue_download() const {
-  auto ret = !stop_download && num_pieces_completed_ != pieces_.size();
-  if (!ret) {
-    std::cout << "DONT CONTINUE" << std::endl;
-  }
   return !stop_download && num_pieces_completed_ != pieces_.size();
 }
 
@@ -171,6 +168,7 @@ void PieceManager::update_piece_frequencies(
     }
   }
   peers_bitfield_map_[peer_id] = converted;
+  LOG_INFO("PieceManager: received bitfield for Peer {}", peer_id);
 }
 
 bool PieceManager::is_verified_piece(uint32_t piece_index,
@@ -204,7 +202,7 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
 }
 
 void PieceManager::file_writer() {
-  std::cout << "writer thread spawned!!!!!!!!!" << std::endl;
+  LOG_INFO("PieceManager: writer thread spawned");
   uint32_t write_count = 0;
   while (!stop_download && write_count != pieces_.size()) {
     std::pair<size_t, std::string> value;
@@ -217,9 +215,9 @@ void PieceManager::file_writer() {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
-  std::cout << "stop download: " << stop_download << std::endl;
-  std::cout << "write count: " << write_count
-            << "pieces size: " << pieces_.size() << std::endl;
+  // std::cout << "stop download: " << stop_download << std::endl;
+  // std::cout << "write count: " << write_count
+  //           << "pieces size: " << pieces_.size() << std::endl;
 }
 
 std::optional<uint32_t> PieceManager::handle_buffer_not_full_case(
