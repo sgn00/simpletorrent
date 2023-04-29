@@ -15,7 +15,7 @@
 using namespace simpletorrent;
 
 int main() {
-  std::string torrent_file = "../debian.torrent";
+  std::string torrent_file = "../coursera-logic.torrent";
 
   Logger::initialize(get_filename_from_path(torrent_file) + ".log");
   LOG_INFO("Initialized");

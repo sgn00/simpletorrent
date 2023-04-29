@@ -65,4 +65,32 @@ inline std::string get_filename_from_path(const std::string& path) {
   std::terminate();
 }
 
+
+inline std::string extract_host(const std::string &announce_url) {
+    std::size_t host_start = announce_url.find("://");
+    if (host_start == std::string::npos) {
+        throw std::runtime_error("Invalid announce URL");
+    }
+    host_start += 3;
+
+    std::size_t host_end = announce_url.find(':', host_start);
+    if (host_end == std::string::npos) {
+        host_end = announce_url.find('/', host_start);
+    }
+
+    return announce_url.substr(host_start, host_end - host_start);
+}
+
+inline std::string extract_port(const std::string &announce_url) {
+    std::size_t port_start = announce_url.find(':', announce_url.find("://") + 3);
+    if (port_start == std::string::npos) {
+        return "80"; // Default port for HTTP
+    }
+    port_start++;
+
+    std::size_t port_end = announce_url.find('/', port_start);
+    return announce_url.substr(port_start, port_end - port_start);
+}
+
+
 }  // namespace simpletorrent

@@ -133,4 +133,9 @@ void Buffer::clear_all_requested(uint32_t piece_index) {
   }
 }
 
+std::vector<BlockState> Buffer::get_block_state(uint32_t piece_index) {
+  int buffer_index = piece_buffer_map_.at(piece_index);
+  return buffer_[buffer_index].blocks_state;
+}
+
 }  // namespace simpletorrent

@@ -44,6 +44,9 @@ class Buffer {
 
   bool is_full();
 
+  // for debug
+  std::vector<BlockState> get_block_state(uint32_t piece_index);
+
   static constexpr uint32_t DEFAULT_BUFFER_SIZE =
       32;  // max 32 piece parts in memory
 

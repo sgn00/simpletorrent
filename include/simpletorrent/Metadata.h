@@ -29,9 +29,10 @@ struct PeerConnInfo {
 
 struct BlockRequest {  // this is sent to the Peer
 
-  BlockRequest(uint32_t piece_index, uint32_t block_idx, uint32_t block_length)
+  BlockRequest(uint32_t piece_index, uint32_t block_offset,
+               uint32_t block_length)
       : piece_index(piece_index),
-        block_offset(block_idx * block_length),
+        block_offset(block_offset),
         block_length(block_length) {}
 
   const uint32_t piece_index;

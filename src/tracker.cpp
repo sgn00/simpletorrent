@@ -36,7 +36,7 @@ std::optional<bencode::data> Tracker::send_request() const {
       {"peer_id", our_id_},
       {"port", std::to_string(PORT)},
       {"compact", "1"},
-      {"numwant", "50"}  // Request up to 50 peers from the tracker
+      {"numwant", "200"}  // Request up to 200 peers from the tracker
   };
   cpr::Response response = cpr::Get(cpr::Url{announce_url_}, parameters,
                                     cpr::Timeout{TRACKER_TIMEOUT});

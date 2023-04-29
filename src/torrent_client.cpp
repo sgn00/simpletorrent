@@ -7,6 +7,7 @@
 #include "simpletorrent/Parser.h"
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/TorrentClient.h"
+#include "simpletorrent/UdpTracker.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {

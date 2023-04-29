@@ -28,6 +28,8 @@ PieceManager::PieceManager(const TorrentMetadata& data, uint32_t block_length,
         data.piece_hashes.at(i), static_cast<uint32_t>(current_piece_length),
         static_cast<uint32_t>(num_blocks), PieceState::NOT_STARTED);
   }
+  std::cout << "Last piece len: " << last_piece_length << std::endl;
+  std::cout << "Num pieces: " << pieces_.size() << std::endl;
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
@@ -76,8 +78,8 @@ std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
   uint32_t block_len =
       calculate_block_length(piece_index, block_idx_to_retrieve.value());
 
-  BlockRequest block_request(piece_index, block_idx_to_retrieve.value(),
-                             block_len);
+  BlockRequest block_request(
+      piece_index, block_idx_to_retrieve.value() * block_length_, block_len);
 
   return block_request;
 }
@@ -117,6 +119,26 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       LOG_INFO("PieceManager: Completed piece {}", piece_index);
       std::cout << "Num completed piece: " << num_pieces_completed_
                 << std::endl;
+
+      if (pieces_.size() - num_pieces_completed_ < 5) {
+        LOG_INFO("Pieces not yet completed:");
+        for (int i = 0; i < pieces_.size(); i++) {
+          if (pieces_[i].state != PieceState::COMPLETED) {
+            LOG_INFO("Piece {} not yet completed | piece state: {}", i,
+                     static_cast<int>(pieces_[i].state));
+          }
+          if (i == pieces_.size() - 1 &&
+              pieces_[i].state != PieceState::NOT_STARTED) {
+            auto blockstate = buffer_.get_block_state(i);
+            LOG_INFO("Block state for last block:");
+            for (int i = 0; i < blockstate.size(); i++) {
+              LOG_INFO("Block {} state: {}", i,
+                       static_cast<int>(blockstate[i]));
+            }
+          }
+        }
+      }
+
     } else {
       LOG_ERROR("PieceManager: Piece {} has hash mismatch", piece_index);
       pieces_.at(piece_index).state = PieceState::NOT_STARTED;
@@ -239,13 +261,28 @@ uint32_t PieceManager::calculate_block_length(
     uint32_t piece_index, uint32_t block_idx_to_retrieve) const {
   uint32_t block_len = block_length_;
   if (piece_index == pieces_.size() - 1) {
-    auto count_len = pieces_.back().current_piece_length -
-                     block_idx_to_retrieve * block_length_;
-    if (count_len >= block_length_) {
-      block_len = block_length_;
+    uint32_t last_block_length =
+        pieces_.back().current_piece_length % block_length_;
+    uint32_t number_of_blocks =
+        pieces_.back().current_piece_length / block_length_;
+    if (block_idx_to_retrieve < number_of_blocks) {
+      if (block_idx_to_retrieve == 60) {
+        LOG_INFO("Retrieve last block len A: {}", block_length_);
+      }
+      return block_length_;
     } else {
-      block_len = count_len;
+      if (block_idx_to_retrieve == 60) {
+        LOG_INFO("Retrieve last block len B: {}", last_block_length);
+      }
+      return last_block_length;
     }
+    // auto count_len = pieces_.back().current_piece_length -
+    //                  block_idx_to_retrieve * block_length_;
+    // if (count_len >= block_length_) {
+    //   block_len = block_length_;
+    // } else {
+    //   block_len = count_len;
+    // }
   }
   return block_len;
 }
