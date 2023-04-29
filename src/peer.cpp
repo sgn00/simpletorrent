@@ -161,7 +161,6 @@ asio::awaitable<void> Peer::receive_messages() {
   // Keep attempting to read messages until download is complete or we have been
   // signalled to exit
   while (continue_connection_) {
-    // std::cout << "in receive message loop" << std::endl;
     asio::steady_timer timer(socket_.get_executor());
 
     // Read header to get message length
@@ -174,7 +173,6 @@ asio::awaitable<void> Peer::receive_messages() {
 
     // Read message type
     uint8_t message_type;
-
     set_timeout(duration::RECV_MSG_TIMEOUT, timer);
     co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
                               asio::as_tuple(asio::use_awaitable));
@@ -217,49 +215,39 @@ asio::awaitable<uint32_t> Peer::read_header(asio::steady_timer& timer,
 void Peer::handle_message(message_util::MessageType type,
                           const std::vector<uint8_t>& payload) {
   using namespace message_util;
-  // Handle different message types
   switch (type) {
     case MessageType::Choke:
       std::cout << "Received choke message" << std::endl;
       break;
     case MessageType::Unchoke:
       //  std::cout << "Received unchoke message" << std::endl;
-      // Handle unchoke message
       is_choked_ = false;
       break;
     case MessageType::Interested:
       //  std::cout << "Received interested message" << std::endl;
-      // Handle interested message
       break;
     case MessageType::NotInterested:
       //  std::cout << "Received not interested message" << std::endl;
-      // Handle not interested message
       break;
     case MessageType::Have:
       // std::cout << "Received have message" << std::endl;
-      // Handle have message
       break;
     case MessageType::Bitfield:
       std::cout << "Received bitfield message" << std::endl;
       handle_bitfield_message(payload);
-      // Handle bitfield message
       break;
     case MessageType::Request:
       //  std::cout << "Received request message" << std::endl;
-      // Handle request message
       break;
     case MessageType::Piece:
       //  std::cout << "Received piece message" << std::endl;
-      // Handle piece message
       handle_piece_message(payload);
       break;
     case MessageType::Cancel:
       //  std::cout << "Received cancel message" << std::endl;
-      // Handle cancel message
       break;
     case MessageType::Port:
       //   std::cout << "Received port message" << std::endl;
-      // Handle port message
       break;
     default:
       break;
@@ -289,18 +277,12 @@ asio::awaitable<void> Peer::send_messages() {
 }
 
 void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
-  // Calculate the number of pieces based on the payload length
-  // size_t payload_length = payload.size();
-  // uint32_t num_pieces = payload_length * 8;
-
   auto peer_bitfield = message_util::get_peer_bitfield(payload, num_pieces_);
   if (peer_bitfield.size() != num_pieces_) {
     std::cout << "received wrong peer bitfield size: " << peer_bitfield.size()
               << " num pieces: " << num_pieces_ << std::endl;
     return;
   }
-  // Handle the parsed bitfield data (e.g., store it, update the state, or start
-  // requesting pieces)
   piece_manager_.update_piece_frequencies(peer_bitfield, peer_num_id_);
 }
 
@@ -310,18 +292,12 @@ asio::awaitable<void> Peer::send_block_requests() {
     // std::cout << "i am choked!" << std::endl;
     co_return;
   }
-  // if (num_in_flight_ == MAX_IN_FLIGHT) {
-  //   std::cout << "skipping peer: " << peer_num_id_ << std::endl;
-  // }
-  // std::cout << "no issue in send block requests" << std::endl;
+
   while (num_in_flight_ < MAX_IN_FLIGHT) {
-    // std::cout << "finding something to send" << std::endl;
     auto block_request = piece_manager_.select_next_block(peer_num_id_);
-    // std::cout << "found something!" << std::endl;
     if (!block_request.has_value()) {
-      //  std::cout << "nothing to send" << std::endl;
+      std::cout << "nothing to send" << std::endl;
       co_return;
-      // break;
     }
     // std::cout << "sending block request: " <<
     // block_request.value().piece_index
@@ -346,7 +322,6 @@ bool Peer::handle_piece_message(const std::vector<uint8_t>& payload) {
   auto [piece_index, block_offset] =
       message_util::retrieve_piece_index_and_block_offset(payload);
 
-  // Extract the block data
   Block block{piece_index, block_offset, payload.begin() + 8, payload.end()};
   piece_manager_.add_block(peer_num_id_, block);
 
