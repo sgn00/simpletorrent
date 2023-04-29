@@ -73,6 +73,9 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
     for (size_t i = 0; i < peer_ips_.size(); i++) {
       if (peers_state_[i] == PeerState::NOT_CONNECTED ||
           peers_state_[i] == PeerState::DISCONNECTED_1) {
+        if (num_connected >= MAX_NUM_CONNECTED_PEERS) {
+          break;
+        }
         auto new_peer = std::make_unique<Peer>(
             piece_manager_, io_context_, info_hash_, our_id_,
             peer_ips_.at(i).ip, peer_ips_.at(i).port, i, num_pieces_);
@@ -82,9 +85,6 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
             asio::detached);
         peers_state_[i] = get_next_peer_state(peers_state_[i]);
         num_connected++;
-        if (num_connected >= MAX_NUM_CONNECTED_PEERS) {
-          break;
-        }
       }
     }
     if (peers_.size() == 0) {
