@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "simpletorrent/Duration.h"
+#include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/StateTransition.h"
@@ -89,8 +90,8 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
     }
     if (peers_.size() == 0) {
       LOG_INFO("PeerManager: No peers left! Stopping download!");
-      piece_manager_
-          .set_stop_download();  // terminate gracefully if no peers left
+      GlobalState::set_stop_download();  // terminate gracefully if no peers
+                                         // left
     }
 
     LOG_INFO("PeerManager: Added {} peers", num_connected - old_size);

@@ -1,50 +1,33 @@
 #include <filesystem>
 
 #include "sha1.hpp"
+#include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/PieceManager.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
 
-PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
-                           size_t piece_length, uint32_t block_length,
-                           size_t total_length, const std::string& output_file,
+PieceManager::PieceManager(const TorrentMetadata& data, uint32_t block_length,
                            uint32_t buffer_size)
-    : stop_download(false),
-      piece_length_(piece_length),
+    : piece_length_(data.piece_length),
       block_length_(block_length),
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
-      write_queue_(5) {
-  size_t num_pieces = piece_hashes.size();
+      file_manager_(data) {
+  size_t num_pieces = data.piece_hashes.size();
   pieces_.reserve(num_pieces);
-  size_t last_piece_length = total_length % piece_length;
+  size_t last_piece_length = data.total_length % data.piece_length;
   for (size_t i = 0; i < num_pieces; i++) {
     size_t current_piece_length =
         (i == num_pieces - 1 && last_piece_length != 0) ? last_piece_length
-                                                        : piece_length;
+                                                        : piece_length_;
     size_t num_blocks =
         (current_piece_length + block_length_ - 1) / block_length_;
     pieces_.emplace_back(
-        piece_hashes.at(i), static_cast<uint32_t>(current_piece_length),
+        data.piece_hashes.at(i), static_cast<uint32_t>(current_piece_length),
         static_cast<uint32_t>(num_blocks), PieceState::NOT_STARTED);
   }
-
-  // Create the file and resize it
-  std::ofstream new_file(output_file, std::ios::binary | std::ios::out);
-  new_file.close();
-  std::filesystem::resize_file(output_file, total_length);
-  output_file_stream_.open(output_file, std::ios::binary | std::ios::out);
-
-  // Spawn writer thread
-  writer_thread_ = std::thread([this]() { this->file_writer(); });
-}
-
-PieceManager::~PieceManager() {
-  LOG_INFO("PieceManager: destroying piece manager");
-  writer_thread_.join();
-  LOG_INFO("PieceManager: joined writer thread");
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {
@@ -145,8 +128,6 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
   return;
 }
 
-void PieceManager::set_stop_download() { stop_download = true; }
-
 void PieceManager::remove_peer(uint32_t peer_id) {
   LOG_INFO("PieceManager: removing Peer {}", peer_id);
   peer_piece_affinity_map_.erase(peer_id);
@@ -154,7 +135,8 @@ void PieceManager::remove_peer(uint32_t peer_id) {
 }
 
 bool PieceManager::continue_download() const {
-  return !stop_download && num_pieces_completed_ != pieces_.size();
+  return !GlobalState::is_stop_download() &&
+         num_pieces_completed_ != pieces_.size();
 }
 
 void PieceManager::update_piece_frequencies(
@@ -182,7 +164,7 @@ bool PieceManager::is_verified_piece(uint32_t piece_index,
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
   size_t file_offset = piece_index * piece_length_;
-  write_queue_.enqueue(std::pair{file_offset, std::move(data)});
+  file_manager_.save_piece(file_offset, data);
 }
 
 void PieceManager::remove_piece_from_buffer(uint32_t piece_index) {
@@ -199,25 +181,6 @@ void PieceManager::remove_affinity(uint32_t piece_index) {
       ++it;
     }
   }
-}
-
-void PieceManager::file_writer() {
-  LOG_INFO("PieceManager: writer thread spawned");
-  uint32_t write_count = 0;
-  while (!stop_download && write_count != pieces_.size()) {
-    std::pair<size_t, std::string> value;
-    if (write_queue_.try_dequeue(value)) {
-      size_t file_offset = value.first;
-      output_file_stream_.seekp(file_offset, std::ios::beg);
-      output_file_stream_.write(value.second.c_str(), value.second.size());
-      write_count++;
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-  }
-  // std::cout << "stop download: " << stop_download << std::endl;
-  // std::cout << "write count: " << write_count
-  //           << "pieces size: " << pieces_.size() << std::endl;
 }
 
 std::optional<uint32_t> PieceManager::handle_buffer_not_full_case(

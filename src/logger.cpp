@@ -7,7 +7,7 @@ void Logger::initialize(const std::string &filename) {
   if (!instance_) {
     instance_ = spdlog::basic_logger_mt("file_logger", filename);
   }
-  spdlog::flush_every(std::chrono::seconds(1));
+  spdlog::flush_every(std::chrono::seconds(3));
 }
 
 spdlog::logger &Logger::instance() {

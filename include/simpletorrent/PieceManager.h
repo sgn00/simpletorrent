@@ -10,15 +10,15 @@
 
 #include "Buffer.h"
 #include "FastRandom.h"
+#include "FileManager.h"
 #include "Metadata.h"
 
 namespace simpletorrent {
 class PieceManager {
  public:
   // Piece hashes are in binary form
-  PieceManager(const std::vector<std::string>& piece_hashes,
-               size_t piece_length, uint32_t block_length, size_t total_length,
-               const std::string& output_file, uint32_t buffer_size);
+  PieceManager(const TorrentMetadata& data, uint32_t block_length,
+               uint32_t buffer_size);
 
   PieceManager(const PieceManager&) = delete;
   PieceManager& operator=(const PieceManager&) = delete;
@@ -26,8 +26,6 @@ class PieceManager {
   std::optional<BlockRequest> select_next_block(uint32_t peer_id);
 
   void add_block(uint32_t peer_id, const Block& block);
-
-  void set_stop_download();
 
   bool continue_download() const;
 
@@ -38,16 +36,10 @@ class PieceManager {
 
   static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
 
-  ~PieceManager();
-
  private:
-  bool stop_download;
-
   uint32_t piece_length_;
 
   uint32_t block_length_;
-
-  std::ofstream output_file_stream_;
 
   std::vector<PieceMetadata> pieces_;
 
@@ -59,11 +51,9 @@ class PieceManager {
 
   std::unordered_map<uint32_t, std::vector<PeerPieceState>> peers_bitfield_map_;
 
-  moodycamel::ReaderWriterQueue<std::pair<uint32_t, std::string>> write_queue_;
-
-  std::thread writer_thread_;
-
   uint32_t num_pieces_completed_;
+
+  FileManager file_manager_;
 
   bool is_valid_block_data(const Block& block) const;
 
@@ -74,8 +64,6 @@ class PieceManager {
   void remove_piece_from_buffer(uint32_t piece_index);
 
   void remove_affinity(uint32_t piece_index);
-
-  void file_writer();
 
   std::optional<uint32_t> handle_buffer_not_full_case(uint32_t peer_id);
 

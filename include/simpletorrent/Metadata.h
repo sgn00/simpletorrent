@@ -7,6 +7,21 @@
 
 namespace simpletorrent {
 
+struct FileMetadata {
+  long long file_length;
+  std::vector<std::string> paths;
+};
+
+struct TorrentMetadata {
+  std::string announce_url;
+  std::vector<std::string> piece_hashes;
+  long long piece_length;
+  long long total_length;
+  std::string output_path;
+  std::string info_hash;
+  std::vector<FileMetadata> files;
+};
+
 struct PeerConnInfo {
   const std::string ip;
   const uint16_t port;
