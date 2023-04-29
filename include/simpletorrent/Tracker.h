@@ -14,10 +14,11 @@ const int TRACKER_TIMEOUT = 15000;
 
 class Tracker {
  public:
-  Tracker(const std::string& announce_url, const std::string& info_hash, const std::string& our_id);
+  Tracker(const std::string& announce_url, const std::string& info_hash,
+          const std::string& our_id);
   const std::vector<PeerConnInfo>& get_peers() const;
   const std::string& get_info_hash() const;
-  bool update_peers();
+  void update_peers();
 
  private:
   std::optional<bencode::data> send_request() const;

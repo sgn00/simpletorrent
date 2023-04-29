@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <cpr/cpr.h>
 
+#include "simpletorrent/Logger.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -13,13 +14,20 @@ Tracker::Tracker(const std::string& announce_url, const std::string& info_hash,
 
 const std::vector<PeerConnInfo>& Tracker::get_peers() const { return peers_; }
 
-bool Tracker::update_peers() {
+void Tracker::update_peers() {
+  LOG_INFO("Connecting to tracker at {}", announce_url_);
   auto response = send_request();
   if (!response) {
-    return false;
+    LOG_CRITICAL("Error getting response from tracker at {}", announce_url_);
+    terminate_program();
   }
-  parse_tracker_response(response.value());
-  return true;
+  try {
+    parse_tracker_response(response.value());
+  } catch (const std::exception& e) {
+    LOG_CRITICAL("Error parsing tracker response at {} | Error: {}",
+                 announce_url_, e.what());
+    terminate_program();
+  }
 }
 
 std::optional<bencode::data> Tracker::send_request() const {

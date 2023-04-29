@@ -1,6 +1,7 @@
 #include <filesystem>
 
 #include "sha1.hpp"
+#include "simpletorrent/Logger.h"
 #include "simpletorrent/PieceManager.h"
 #include "simpletorrent/Util.h"
 
@@ -16,6 +17,7 @@ PieceManager::PieceManager(const std::vector<std::string>& piece_hashes,
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       write_queue_(5) {
+  LOG_INFO("log test");
   size_t num_pieces = piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = total_length % piece_length;
@@ -133,6 +135,7 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       std::cout << "Num completed piece: " << num_pieces_completed_
                 << std::endl;
     } else {
+      LOG_ERROR("Piece {} has hash mismatch", piece_index);
       pieces_.at(piece_index).state = PieceState::NOT_STARTED;
     }
 

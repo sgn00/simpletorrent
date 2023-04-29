@@ -7,17 +7,26 @@
 #include <iostream>
 #include <sstream>
 
+#include "simpletorrent/Logger.h"
 #include "simpletorrent/Peer.h"
 #include "simpletorrent/TorrentClient.h"
+#include "simpletorrent/Util.h"
 
 using namespace simpletorrent;
 
 int main() {
   std::string torrent_file = "../debian.torrent";
+
+  Logger::initialize(get_filename_from_path(torrent_file) + ".log");
+  LOG_INFO("Initialized");
+
   TorrentClient tc;
   tc.start_download(torrent_file);
+
+  LOG_INFO("Completed");
+
   std::cout << "FINISHED EXITING" << std::endl;
-  std::cout << "test" << std::endl;
+
   // asio::io_context io_context;
   // PieceManager pm({}, 100, 1000, "abc");
 

@@ -28,6 +28,14 @@ FetchContent_Declare(readerwriterqueue GIT_REPOSITORY https://github.com/cameron
                                         GIT_TAG 8e7627d18c2108aca178888d88514179899a044f)
 FetchContent_MakeAvailable(readerwriterqueue)
 
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.1.0
+)
+FetchContent_MakeAvailable(spdlog)
+
+
 file(GLOB_RECURSE SIMPLETORRENT_SOURCES "src/*.cpp" EXCLUDE "src/main.cpp")
 
 add_library(simpletorrent_lib ${SIMPLETORRENT_SOURCES})
@@ -36,7 +44,7 @@ message(STATUS "Source files: ${SIMPLETORRENT_SOURCES}")
 
 target_include_directories(simpletorrent_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/external/include ${asio_SOURCE_DIR}/asio/include)
 
-target_link_libraries(simpletorrent_lib PUBLIC Threads::Threads cpr::cpr readerwriterqueue)
+target_link_libraries(simpletorrent_lib PUBLIC Threads::Threads cpr::cpr readerwriterqueue spdlog::spdlog)
 
 add_executable(simpletorrent src/main.cpp)
 
