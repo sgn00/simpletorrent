@@ -4,6 +4,8 @@
 #include <asio/ts/internet.hpp>
 #include <bencode.hpp>
 #include <fstream>
+#include <indicators/cursor_control.hpp>
+#include <indicators/progress_bar.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -13,6 +15,7 @@
 #include "simpletorrent/Util.h"
 
 using namespace simpletorrent;
+using namespace indicators;
 
 int main() {
   std::string torrent_file = "../debian.torrent";

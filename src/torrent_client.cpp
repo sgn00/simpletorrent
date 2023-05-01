@@ -6,6 +6,7 @@
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/Parser.h"
 #include "simpletorrent/PeerManager.h"
+#include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
 #include "simpletorrent/Util.h"
 
@@ -31,6 +32,10 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   PieceManager piece_manager =
       PieceManager(metadata, PieceManager::DEFAULT_BLOCK_LENGTH,
                    Buffer::DEFAULT_BUFFER_SIZE);
+
+  auto& stats = Statistics::instance();
+  stats.init(metadata.piece_hashes.size(), metadata.piece_length);
+  stats.start_draw();
 
   PeerManager peer_manager(piece_manager, std::move(peer_conn_info),
                            metadata.info_hash, our_id_,

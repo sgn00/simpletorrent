@@ -4,6 +4,7 @@
 #include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/PieceManager.h"
+#include "simpletorrent/Statistics.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -117,8 +118,8 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       pieces_.at(piece_index).state = PieceState::COMPLETED;
       num_pieces_completed_++;
       LOG_INFO("PieceManager: Completed piece {}", piece_index);
-      std::cout << "Num completed piece: " << num_pieces_completed_
-                << std::endl;
+      // std::cout << "Num completed piece: " << num_pieces_completed_
+      //           << std::endl;
 
       if (pieces_.size() - num_pieces_completed_ < 5) {
         LOG_INFO("Pieces not yet completed:");
@@ -185,7 +186,9 @@ bool PieceManager::is_verified_piece(uint32_t piece_index,
 }
 
 void PieceManager::save_piece(uint32_t piece_index, const std::string& data) {
-  size_t file_offset = piece_index * piece_length_;
+  Statistics::instance().update_piece_completed();
+  size_t file_offset =
+      static_cast<size_t>(piece_index) * static_cast<size_t>(piece_length_);
   file_manager_.save_piece(file_offset, data);
 }
 
