@@ -15,17 +15,22 @@
 using namespace simpletorrent;
 
 int main() {
-  std::string torrent_file = "../coursera-logic.torrent";
+  std::string torrent_file = "../debian.torrent";
 
   Logger::initialize(get_filename_from_path(torrent_file) + ".log");
   LOG_INFO("Initialized");
 
   TorrentClient tc;
-  tc.start_download(torrent_file);
+  try {
+    tc.start_download(torrent_file);
+    LOG_INFO("Completed");
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    LOG_CRITICAL("FATAL error shutting down | Error: {}", e.what());
+  }
 
-  LOG_INFO("Completed");
-
-  std::cout << "FINISHED EXITING" << std::endl;
+  LOG_INFO("Stopping torrent client...");
+  spdlog::shutdown();
 
   // asio::io_context io_context;
   // PieceManager pm({}, 100, 1000, "abc");

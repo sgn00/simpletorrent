@@ -13,7 +13,7 @@ struct FileMetadata {
 };
 
 struct TorrentMetadata {
-  std::string announce_url;
+  std::vector<std::string> tracker_url_list;
   std::vector<std::string> piece_hashes;
   long long piece_length;
   long long total_length;

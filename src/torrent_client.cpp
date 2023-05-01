@@ -18,13 +18,15 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   Parser parser;
   TorrentMetadata metadata = parser.parse_torrent_file(torrent_file);
 
+  std::cout << "Num trackers: " << metadata.tracker_url_list.size()
+            << std::endl;
+
   // 2. Fetch peer info from Tracker
-  std::cout << "connecting to tracker" << std::endl;
-  Tracker tracker(metadata.announce_url, metadata.info_hash, our_id_);
-  tracker.update_peers();
+  std::cout << "connecting to trackers" << std::endl;
+  Tracker tracker(metadata.tracker_url_list, metadata.info_hash, our_id_);
 
   auto peer_conn_info = tracker.get_peers();
-  LOG_INFO("Num peers from tracker: {}", peer_conn_info.size());
+  LOG_INFO("Num peers from trackers: {}", peer_conn_info.size());
 
   PieceManager piece_manager =
       PieceManager(metadata, PieceManager::DEFAULT_BLOCK_LENGTH,
