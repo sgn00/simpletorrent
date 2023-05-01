@@ -16,9 +16,10 @@ Statistics::Statistics() {
       std::vector<indicators::FontStyle>{indicators::FontStyle::bold}});
 }
 
-Statistics::~Statistics() {
+void Statistics::stop_thread() {
   if (drawer_thread_.joinable()) {
     drawer_thread_.join();
+    std::cout << std::endl;
   }
 }
 
@@ -46,9 +47,7 @@ void Statistics::init(uint32_t num_pieces, uint32_t piece_length) {
 
 void Statistics::draw_progress() {
   while (!GlobalState::is_stop_download()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    progress_bar_.set_progress(static_cast<float>(completed_pieces_) /
-                               static_cast<float>(total_pieces_) * 100.0f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     auto now = std::chrono::steady_clock::now();
     auto elapsed_time =
         std::chrono::duration_cast<std::chrono::seconds>(now - start_time_)
@@ -67,6 +66,8 @@ void Statistics::draw_progress() {
     progress_bar_.set_option(indicators::option::PostfixText{
         "Peers: " + std::to_string(connected_peers_) +
         " | Speed: " + download_speed_str + " KB/s"});
+    progress_bar_.set_progress(static_cast<float>(completed_pieces_) /
+                               static_cast<float>(total_pieces_) * 100.0f);
   }
 }
 

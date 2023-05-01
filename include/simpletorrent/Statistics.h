@@ -6,18 +6,6 @@
 #include <thread>
 
 namespace simpletorrent {
-// class Statistics {
-//  public:
-//   Statistics(uint32_t num_pieces);
-
-//   void update_progress(int completed_pieces, int num_peers,
-//                        double download_speed);
-
-//  private:
-//   uint32_t total_pieces_;
-//   indicators::BlockProgressBar progress_bar_;
-// };
-
 class Statistics {
  public:
   static Statistics& instance();
@@ -34,7 +22,7 @@ class Statistics {
 
   void start_draw();
 
-  ~Statistics();
+  void stop_thread();
 
  private:
   Statistics();

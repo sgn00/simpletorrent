@@ -41,9 +41,10 @@ void TorrentClient::start_download(const std::string& torrent_file) {
                            metadata.info_hash, our_id_,
                            metadata.piece_hashes.size());
   peer_manager.start();
-  std::cout << "total num pieces to download: " << metadata.piece_hashes.size()
-            << std::endl;
-  std::cout << "finished download" << std::endl;
+  // std::cout << "total num pieces to download: " <<
+  // metadata.piece_hashes.size()
+  //           << std::endl;
+  // std::cout << "finished download" << std::endl;
 }
 
 }  // namespace simpletorrent

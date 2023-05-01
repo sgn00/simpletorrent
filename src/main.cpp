@@ -9,8 +9,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/Peer.h"
+#include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
 #include "simpletorrent/Util.h"
 
@@ -18,7 +20,7 @@ using namespace simpletorrent;
 using namespace indicators;
 
 int main() {
-  std::string torrent_file = "../debian.torrent";
+  std::string torrent_file = "../mars.torrent";
 
   Logger::initialize(get_filename_from_path(torrent_file) + ".log");
   LOG_INFO("Initialized");
@@ -31,6 +33,9 @@ int main() {
     std::cout << e.what() << std::endl;
     LOG_CRITICAL("FATAL error shutting down | Error: {}", e.what());
   }
+
+  GlobalState::set_stop_download();
+  Statistics::instance().stop_thread();
 
   LOG_INFO("Stopping torrent client...");
   spdlog::shutdown();

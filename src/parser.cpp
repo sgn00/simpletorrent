@@ -98,7 +98,7 @@ void Parser::add_trackers(const bencode::dict& torrent_data_dict,
                           TorrentMetadata& data) const {
   if (torrent_data_dict.count("announce-list")) {
     auto announce_list =
-        std::get<bencode::list>(torrent_data_dict.at("announce_list"));
+        std::get<bencode::list>(torrent_data_dict.at("announce-list"));
     for (const auto& list_data : announce_list) {  // collate all http trackers
       auto list = std::get<bencode::list>(list_data);
       for (const auto& str_data : list) {
