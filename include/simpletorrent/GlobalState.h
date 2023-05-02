@@ -6,6 +6,7 @@ class GlobalState {
  public:
   static bool is_stop_download();
   static void set_stop_download();
+  static void set_continue_download();
 
   GlobalState() = delete;
   GlobalState(const GlobalState&) = delete;

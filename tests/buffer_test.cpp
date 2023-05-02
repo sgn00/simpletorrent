@@ -188,12 +188,3 @@ TEST_CASE("Buffer remove_piece_from_buffer", "[Buffer]") {
   auto pieces_in_buffer = buffer.get_pieces_in_buffer();
   REQUIRE(pieces_in_buffer.size() == Buffer::DEFAULT_BUFFER_SIZE - 2);
 }
-
-/*
-struct Block {  // this is what the Peer sends us
-  const uint32_t piece_index;
-  const uint32_t block_offset;
-  std::vector<uint8_t>::const_iterator data_begin;
-  std::vector<uint8_t>::const_iterator data_end;
-};
-*/
