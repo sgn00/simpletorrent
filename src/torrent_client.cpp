@@ -8,6 +8,7 @@
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
+#include "simpletorrent/UdpTracker.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -21,6 +22,11 @@ void TorrentClient::start_download(const std::string& torrent_file) {
 
   std::cout << "Num trackers: " << metadata.tracker_url_list.size()
             << std::endl;
+
+  UdpTracker udptracker(metadata.tracker_url_list[0], metadata.info_hash,
+                        our_id_);
+  udptracker.connect();
+  std::terminate();
 
   // 2. Fetch peer info from Tracker
   std::cout << "connecting to trackers" << std::endl;

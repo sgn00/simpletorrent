@@ -42,6 +42,10 @@ class PeerManager {
   std::vector<PeerConnInfo> peer_ips_;
 
   asio::awaitable<void> cleanup_and_open_connections();
+
+  void cleanup_connections();
+
+  void open_connections();
 };
 
 }  // namespace simpletorrent

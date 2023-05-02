@@ -277,6 +277,10 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
   //             << " num pieces: " << num_pieces_ << std::endl;
   //   return;
   // }
+  // for (int i : peer_bitfield) {
+  //   std::cout << i << ",";
+  // }
+  // std::cout << std::endl;
   piece_manager_.update_piece_frequencies(peer_bitfield, peer_num_id_);
 }
 

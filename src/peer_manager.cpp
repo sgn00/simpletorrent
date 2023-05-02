@@ -56,41 +56,11 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
                               std::chrono::seconds(duration::CLEANUP_TIMEOUT))
       .async_wait(asio::use_awaitable);
   while (piece_manager_.continue_download()) {
-    // partition into exited peers, and peers which have not exited
-    auto remove_iter = std::partition(
-        peers_.begin(), peers_.end(),
-        [](const std::unique_ptr<Peer>& p) { return !p->has_exited(); });
-    LOG_INFO("PeerManager: Removing {} peers", peers_.end() - remove_iter);
-    // transition state for exited peers
-    for (auto it = remove_iter; it != peers_.end(); it++) {
-      auto& p = *it;
-      auto peer_id = p->get_id();
-      piece_manager_.remove_peer(peer_id);
-      auto peer_state = peers_state_.at(peer_id);
-      peers_state_.at(peer_id) = get_next_peer_state(peer_state);
-    }
-    // remove exited peers
-    peers_.erase(remove_iter, peers_.end());
-    uint32_t num_connected = peers_.size();
-    uint32_t old_size = num_connected;
-    // find peers in our peer_ip list which are in connectable state
-    for (size_t i = 0; i < peer_ips_.size(); i++) {
-      if (peers_state_[i] == PeerState::NOT_CONNECTED ||
-          peers_state_[i] == PeerState::DISCONNECTED_1) {
-        if (num_connected >= MAX_NUM_CONNECTED_PEERS) {
-          break;
-        }
-        auto new_peer = std::make_unique<Peer>(
-            piece_manager_, io_context_, info_hash_, our_id_,
-            peer_ips_.at(i).ip, peer_ips_.at(i).port, i, num_pieces_);
-        peers_.push_back(std::move(new_peer));
-        asio::co_spawn(
-            io_context_, [&] { return peers_.back()->start(); },
-            asio::detached);
-        peers_state_[i] = get_next_peer_state(peers_state_[i]);
-        num_connected++;
-      }
-    }
+    cleanup_connections();
+
+    uint32_t old_size = peers_.size();
+
+    open_connections();
 
     Statistics::instance().update_num_peers(peers_.size());
 
@@ -100,7 +70,7 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
                                          // left
     }
 
-    LOG_INFO("PeerManager: Added {} peers", num_connected - old_size);
+    LOG_INFO("PeerManager: Added {} peers", peers_.size() - old_size);
 
     co_await asio::steady_timer(io_context_,
                                 std::chrono::seconds(duration::CLEANUP_TIMEOUT))
@@ -109,6 +79,43 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
 
   LOG_INFO("PeerManager: stopping!");
   io_context_.stop();
+}
+
+void PeerManager::cleanup_connections() {
+  // partition into exited peers, and peers which have not exited
+  auto remove_iter = std::partition(
+      peers_.begin(), peers_.end(),
+      [](const std::unique_ptr<Peer>& p) { return !p->has_exited(); });
+  LOG_INFO("PeerManager: Removing {} peers", peers_.end() - remove_iter);
+  // transition state for exited peers
+  for (auto it = remove_iter; it != peers_.end(); it++) {
+    auto& p = *it;
+    auto peer_id = p->get_id();
+    piece_manager_.remove_peer(peer_id);
+    auto peer_state = peers_state_.at(peer_id);
+    peers_state_.at(peer_id) = get_next_peer_state(peer_state);
+  }
+  // remove exited peers
+  peers_.erase(remove_iter, peers_.end());
+}
+
+void PeerManager::open_connections() {
+  // find peers in our peer_ip list which are in connectable state
+  for (size_t i = 0; i < peer_ips_.size(); i++) {
+    if (peers_state_[i] == PeerState::NOT_CONNECTED ||
+        peers_state_[i] == PeerState::DISCONNECTED_1) {
+      if (peers_.size() >= MAX_NUM_CONNECTED_PEERS) {
+        break;
+      }
+      auto new_peer = std::make_unique<Peer>(
+          piece_manager_, io_context_, info_hash_, our_id_, peer_ips_.at(i).ip,
+          peer_ips_.at(i).port, i, num_pieces_);
+      peers_.push_back(std::move(new_peer));
+      asio::co_spawn(
+          io_context_, [&] { return peers_.back()->start(); }, asio::detached);
+      peers_state_[i] = get_next_peer_state(peers_state_[i]);
+    }
+  }
 }
 
 }  // namespace simpletorrent

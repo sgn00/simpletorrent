@@ -103,17 +103,17 @@ void Parser::add_trackers(const bencode::dict& torrent_data_dict,
       auto list = std::get<bencode::list>(list_data);
       for (const auto& str_data : list) {
         auto tracker_url = std::get<bencode::string>(str_data);
-        if (tracker_url.starts_with("http")) {
-          data.tracker_url_list.push_back(tracker_url);
-        }
+        // if (tracker_url.starts_with("http")) {
+        data.tracker_url_list.push_back(tracker_url);
+        // }
       }
     }
   } else {
     auto announce_url =
         std::get<bencode::string>(torrent_data_dict.at("announce"));
-    if (announce_url.starts_with("http")) {
-      data.tracker_url_list.push_back(announce_url);
-    }
+    // if (announce_url.starts_with("http")) {
+    data.tracker_url_list.push_back(announce_url);
+    // }
   }
 }
 
