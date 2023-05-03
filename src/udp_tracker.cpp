@@ -13,21 +13,21 @@ UdpTracker::UdpTracker(const std::string& tracker_url,
       info_hash_(info_hash),
       our_id_(our_id),
       peer_set_(peer_set),
-      io_context_(io_context) {
-  std::string host = extract_host(tracker_url);
-  std::string port = extract_port(tracker_url);
-  asio::ip::udp::resolver resolver(io_context_);
-  tracker_endpoint_ =
-      *resolver.resolve(asio::ip::udp::v4(), host, port).begin();
-
-  socket_.open(asio::ip::udp::v4());
-}
+      io_context_(io_context) {}
 
 void UdpTracker::add_peers() {
   asio::co_spawn(
       io_context_,
       [&] -> asio::awaitable<void> {
         try {
+          std::string host = extract_host(tracker_url_);
+          std::string port = extract_port(tracker_url_);
+          asio::ip::udp::resolver resolver(io_context_);
+          auto results = co_await resolver.async_resolve(
+              asio::ip::udp::v4(), host, port, asio::use_awaitable);
+          tracker_endpoint_ = *results.begin();
+
+          socket_.open(asio::ip::udp::v4());
           auto connection_id = co_await send_connect_request();
           co_await send_announce_request(connection_id);
         } catch (const std::exception& e) {

@@ -12,6 +12,31 @@ Tracker::Tracker(const std::vector<std::string>& tracker_url_list,
 
 void Tracker::add_peers() {
   int prv_num = peer_set_.size();
+
+  // add peers from udp trackers
+  asio::io_context io_context;
+  std::vector<UdpTracker> udp_trackers;
+  for (const auto& url : tracker_url_list_) {
+    if (url.starts_with("udp")) {
+      UdpTracker ut(url, info_hash_, our_id_, peer_set_, io_context);
+      udp_trackers.push_back(std::move(ut));
+    }
+  }
+  for (auto& udp_tracker : udp_trackers) {
+    udp_tracker.add_peers();
+  }
+  io_context.run();
+
+  std::cout << "Num peers added by udp: " << peer_set_.size() - prv_num
+            << std::endl;
+
+  if (peer_set_.size() > 0) {
+    std::cout << "skipping http trackers" << std::endl;
+    return;
+  }
+
+  prv_num = peer_set_.size();
+
   // add peers from http trackers
   for (const auto& url : tracker_url_list_) {
     if (url.starts_with("http")) {
@@ -25,27 +50,6 @@ void Tracker::add_peers() {
   }
 
   std::cout << "Finished adding http trackers" << std::endl;
-
-  // add peers from udp trackers
-  asio::io_context io_context;
-  std::vector<UdpTracker> udp_trackers;
-  for (const auto& url : tracker_url_list_) {
-    if (url.starts_with("udp")) {
-      try {
-        UdpTracker ut(url, info_hash_, our_id_, peer_set_, io_context);
-        udp_trackers.push_back(std::move(ut));
-      } catch (const std::exception& e) {
-        std::cout << "failed creating udp tracker url: " << url
-                  << " | error: " << e.what() << std::endl;
-      }
-    }
-  }
-  for (auto& udp_tracker : udp_trackers) {
-    udp_tracker.add_peers();
-  }
-  io_context.run();
-  std::cout << "Num peers added by udp: " << peer_set_.size() - prv_num
-            << std::endl;
 }
 
 std::vector<PeerConnInfo> Tracker::get_peers() const {
