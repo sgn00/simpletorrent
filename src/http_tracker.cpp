@@ -21,6 +21,7 @@ void HttpTracker::add_peers() {
   auto response = send_request(tracker_url_);
   if (!response) {
     LOG_CRITICAL("Error getting response from tracker at {}", tracker_url_);
+    return;
   }
   try {
     parse_tracker_response(response.value());
@@ -42,8 +43,6 @@ std::optional<bencode::data> HttpTracker::send_request(
   cpr::Response response = cpr::Get(cpr::Url{tracker_url}, parameters,
                                     cpr::Timeout{TRACKER_TIMEOUT});
   if (response.status_code != 200) {
-    std::cerr << "Failed to get 200 response from Tracker " << tracker_url
-              << ": " << response.error.message << std::endl;
     return std::nullopt;
   }
 
@@ -52,10 +51,12 @@ std::optional<bencode::data> HttpTracker::send_request(
 
 void HttpTracker::parse_tracker_response(const bencode::data& response) {
   auto response_dict = std::get<bencode::dict>(response);
-  std::cout << "got response_dict" << std::endl;
+
+  int prv_num = peer_set_.size();
 
   auto peer_data = response_dict.at("peers");
-  if (std::holds_alternative<bencode::list>(peer_data)) {
+  if (std::holds_alternative<bencode::list>(
+          peer_data)) {  // peers can be in list form
     auto peer_list = std::get<bencode::list>(peer_data);
     for (auto& peer : peer_list) {
       auto peer_map = std::get<bencode::dict>(peer);
@@ -64,7 +65,8 @@ void HttpTracker::parse_tracker_response(const bencode::data& response) {
       std::cout << ip << ":" << std::to_string(port) << std::endl;
       peer_set_.insert(ip + ":" + std::to_string(port));
     }
-  } else if (std::holds_alternative<bencode::string>(peer_data)) {
+  } else if (std::holds_alternative<bencode::string>(
+                 peer_data)) {  // or string form
     auto peers_string = std::get<bencode::string>(peer_data);
     for (size_t i = 0; i < peers_string.size(); i += 6) {
       char ip_str[INET_ADDRSTRLEN];
@@ -76,9 +78,12 @@ void HttpTracker::parse_tracker_response(const bencode::data& response) {
       peer_set_.insert(std::string(ip_str) + ":" + std::to_string(port));
     }
   } else {
-    std::cout << "invalid peer data" << std::endl;
+    LOG_ERROR("Invalid peer data from tracker at {}", tracker_url_);
     return;
   }
+
+  LOG_INFO("HTTP tracker at {} contributed {} peers", tracker_url_,
+           peer_set_.size() - prv_num);
 }
 
 }  // namespace simpletorrent

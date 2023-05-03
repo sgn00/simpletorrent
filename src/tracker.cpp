@@ -1,6 +1,7 @@
 #include "simpletorrent/Tracker.h"
 
 #include "simpletorrent/HttpTracker.h"
+#include "simpletorrent/Logger.h"
 #include "simpletorrent/UdpTracker.h"
 
 namespace simpletorrent {
@@ -27,11 +28,10 @@ void Tracker::add_peers() {
   }
   io_context.run();
 
-  std::cout << "Num peers added by udp: " << peer_set_.size() - prv_num
-            << std::endl;
+  LOG_INFO("Num peers added by udp trackers: {}", peer_set_.size() - prv_num);
 
   if (peer_set_.size() > 0) {
-    std::cout << "skipping http trackers" << std::endl;
+    LOG_INFO("Skipping HTTP trackers");
     return;
   }
 
@@ -42,14 +42,11 @@ void Tracker::add_peers() {
     if (url.starts_with("http")) {
       HttpTracker ht(url, info_hash_, our_id_, peer_set_);
       ht.add_peers();
-
-      std::cout << "Num peers added by " << url << ": "
-                << peer_set_.size() - prv_num << std::endl;
-      prv_num = peer_set_.size();
     }
   }
 
-  std::cout << "Finished adding http trackers" << std::endl;
+  LOG_INFO("Num peers added by HTTP trackers: {}", peer_set_.size() - prv_num);
+  LOG_INFO("Finished adding peers from trackers");
 }
 
 std::vector<PeerConnInfo> Tracker::get_peers() const {

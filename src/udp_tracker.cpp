@@ -31,22 +31,17 @@ void UdpTracker::add_peers() {
           auto connection_id = co_await send_connect_request();
           co_await send_announce_request(connection_id);
         } catch (const std::exception& e) {
-          std::cout << "failed during get peers for udp tracker url: "
-                    << tracker_url_ << " | error: " << e.what() << std::endl;
+          LOG_ERROR("Failed getting peers from udp tracker at {} | Error: {}",
+                    tracker_url_, e.what());
         }
       },
       asio::detached);
-
-  //   io_context_.run();
-  //   for (auto& s : res) {
-  //     std::cout << s << std::endl;
-  //   }
 }
 
 std::string UdpTracker::get_url() const { return tracker_url_; }
 
 asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
-  constexpr uint64_t initial_connection_id = 0x41727101980;
+  constexpr uint64_t initial_connection_id = 0x41727101980;  // special bytes
   constexpr uint32_t connect_action = 0;
 
   std::array<char, 16> connect_request;
@@ -70,9 +65,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   timer.expires_from_now(std::chrono::seconds(5));
   timer.async_wait([&](const asio::error_code& error) {
     if (!error) {
-      std::cout << "Timeout!" << std::endl;
       socket_.cancel();
-      // throw exception
       *error_occurred = true;
     }
   });
@@ -81,12 +74,9 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
                                       sender_endpoint, asio::use_awaitable);
 
   if (*error_occurred) {
-    throw std::runtime_error("timeout for tracker");
+    throw std::runtime_error("Timeout for udp tracker");
   }
 
-  //   io_context_.run();
-
-  // socket_.receive_from(asio::buffer(connect_response), sender_endpoint);
   uint32_t received_action =
       convert_bo(*(reinterpret_cast<uint32_t*>(connect_response.data())));
   uint32_t received_transaction_id =
@@ -94,8 +84,6 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   if (received_action != connect_action ||
       received_transaction_id != transaction_id) {
     throw std::runtime_error("Failed to receive a valid connect response");
-  } else {
-    std::cout << "Connect successful" << std::endl;
   }
 
   uint64_t connection_id =
@@ -144,23 +132,16 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   timer.expires_from_now(std::chrono::seconds(5));
   timer.async_wait([&](const asio::error_code& error) {
     if (!error) {
-      std::cout << "Timeout!" << std::endl;
       socket_.cancel();
-      // throw exception
       *error_occurred = true;
     }
   });
   auto bytes_received = co_await socket_.async_receive_from(
       asio::buffer(announce_response), sender_endpoint, asio::use_awaitable);
   if (*error_occurred) {
-    throw std::runtime_error("timeout for tracker");
+    throw std::runtime_error("Timeout for udp tracker");
   }
 
-  //   io_context_.run();
-
-  std::cout << "byte transferred: " << bytes_received << std::endl;
-
-  // socket_.receive_from(asio::buffer(announce_response), sender_endpoint);
   uint32_t received_action =
       convert_bo(*(reinterpret_cast<uint32_t*>(announce_response.data())));
   uint32_t received_transaction_id =
@@ -168,11 +149,11 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   if (received_action != announce_action ||
       received_transaction_id != transaction_id) {
     throw std::runtime_error("Failed to receive a valid announce response");
-  } else {
-    std::cout << "Announce successful" << std::endl;
   }
 
   auto num_peers = (bytes_received - 20) / 6;
+
+  int prv_num = peer_set_.size();
   for (size_t i = 0; i < num_peers; i++) {
     asio::ip::address_v4::bytes_type ip_bytes;
     memcpy(ip_bytes.data(), announce_response.data() + 20 + (i * 6), 4);
@@ -182,9 +163,9 @@ asio::awaitable<void> UdpTracker::send_announce_request(
     std::string peer_str = ip_address.to_string() + ":" + std::to_string(port);
     peer_set_.insert(peer_str);
   }
-  //   for (auto& s : res) {
-  //     std::cout << s << std::endl;
-  //   }
+
+  LOG_INFO("Udp tracker at {} contributed {} peers", tracker_url_,
+           peer_set_.size() - prv_num);
 
   co_return;
 }
