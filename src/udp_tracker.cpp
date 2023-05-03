@@ -5,11 +5,17 @@
 
 namespace simpletorrent {
 UdpTracker::UdpTracker(const std::string& tracker_url,
-                       const std::string& info_hash, const std::string& our_id)
-    : socket_(io_context_), info_hash_(info_hash), our_id_(our_id) {
+                       const std::string& info_hash, const std::string& our_id,
+                       std::unordered_set<std::string>& peer_set,
+                       asio::io_context& io_context)
+    : tracker_url_(tracker_url),
+      socket_(io_context),
+      info_hash_(info_hash),
+      our_id_(our_id),
+      peer_set_(peer_set),
+      io_context_(io_context) {
   std::string host = extract_host(tracker_url);
   std::string port = extract_port(tracker_url);
-  std::cout << "port: " << port << std::endl;
   asio::ip::udp::resolver resolver(io_context_);
   tracker_endpoint_ =
       *resolver.resolve(asio::ip::udp::v4(), host, port).begin();
@@ -17,20 +23,27 @@ UdpTracker::UdpTracker(const std::string& tracker_url,
   socket_.open(asio::ip::udp::v4());
 }
 
-void UdpTracker::connect() {
-  std::vector<std::string> res;
+void UdpTracker::add_peers() {
   asio::co_spawn(
       io_context_,
       [&] -> asio::awaitable<void> {
-        auto connection_id = co_await send_connect_request();
-        co_await send_announce_request(connection_id, res);
+        try {
+          auto connection_id = co_await send_connect_request();
+          co_await send_announce_request(connection_id);
+        } catch (const std::exception& e) {
+          std::cout << "failed during get peers for udp tracker url: "
+                    << tracker_url_ << " | error: " << e.what() << std::endl;
+        }
       },
       asio::detached);
-  io_context_.run();
-  for (auto& s : res) {
-    std::cout << s << std::endl;
-  }
+
+  //   io_context_.run();
+  //   for (auto& s : res) {
+  //     std::cout << s << std::endl;
+  //   }
 }
+
+std::string UdpTracker::get_url() const { return tracker_url_; }
 
 asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   constexpr uint64_t initial_connection_id = 0x41727101980;
@@ -52,6 +65,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   std::array<char, 16> connect_response;
   asio::ip::udp::endpoint sender_endpoint;
 
+  auto error_occurred = std::make_shared<bool>(false);
   asio::steady_timer timer(io_context_);
   timer.expires_from_now(std::chrono::seconds(5));
   timer.async_wait([&](const asio::error_code& error) {
@@ -59,12 +73,16 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
       std::cout << "Timeout!" << std::endl;
       socket_.cancel();
       // throw exception
-      throw std::runtime_error("timeout for tracker");
+      *error_occurred = true;
     }
   });
 
   co_await socket_.async_receive_from(asio::buffer(connect_response),
                                       sender_endpoint, asio::use_awaitable);
+
+  if (*error_occurred) {
+    throw std::runtime_error("timeout for tracker");
+  }
 
   //   io_context_.run();
 
@@ -86,7 +104,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
 }
 
 asio::awaitable<void> UdpTracker::send_announce_request(
-    uint64_t connection_id, std::vector<std::string>& res) {
+    uint64_t connection_id) {
   constexpr uint32_t announce_action = 1;
   uint32_t transaction_id = 10;
   std::array<char, 98> announce_request;
@@ -120,6 +138,8 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   std::vector<char> announce_response(2048);
   asio::ip::udp::endpoint sender_endpoint;
 
+  auto error_occurred = std::make_shared<bool>(false);
+
   asio::steady_timer timer(io_context_);
   timer.expires_from_now(std::chrono::seconds(5));
   timer.async_wait([&](const asio::error_code& error) {
@@ -127,11 +147,14 @@ asio::awaitable<void> UdpTracker::send_announce_request(
       std::cout << "Timeout!" << std::endl;
       socket_.cancel();
       // throw exception
-      throw std::runtime_error("timeout for tracker");
+      *error_occurred = true;
     }
   });
   auto bytes_received = co_await socket_.async_receive_from(
       asio::buffer(announce_response), sender_endpoint, asio::use_awaitable);
+  if (*error_occurred) {
+    throw std::runtime_error("timeout for tracker");
+  }
 
   //   io_context_.run();
 
@@ -157,7 +180,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
         announce_response.data() + 20 + (i * 6) + 4)));
     asio::ip::address_v4 ip_address(ip_bytes);
     std::string peer_str = ip_address.to_string() + ":" + std::to_string(port);
-    res.push_back(peer_str);
+    peer_set_.insert(peer_str);
   }
   //   for (auto& s : res) {
   //     std::cout << s << std::endl;
