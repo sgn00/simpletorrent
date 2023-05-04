@@ -16,6 +16,8 @@
 namespace simpletorrent {
 class PieceManager {
  public:
+  static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
+
   // Piece hashes are in binary form
   PieceManager(const TorrentMetadata& data, uint32_t block_length,
                uint32_t buffer_size);
@@ -34,25 +36,15 @@ class PieceManager {
 
   void remove_peer(uint32_t peer_id);
 
-  static constexpr uint32_t DEFAULT_BLOCK_LENGTH = 16384;
-
  private:
   uint32_t piece_length_;
-
   uint32_t block_length_;
-
   std::vector<PieceMetadata> pieces_;
-
   Buffer buffer_;
-
   FastRandom rng_;
-
   std::unordered_map<uint32_t, uint32_t> peer_piece_affinity_map_;
-
   std::unordered_map<uint32_t, std::vector<PeerPieceState>> peers_bitfield_map_;
-
   uint32_t num_pieces_completed_;
-
   FileManager file_manager_;
 
   bool is_valid_block_data(const Block& block) const;

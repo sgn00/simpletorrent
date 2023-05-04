@@ -121,41 +121,30 @@ inline std::vector<uint8_t> construct_request_message(
     const BlockRequest& request) {
   std::vector<uint8_t> payload(12);
 
-  // Set the piece index
-  payload[0] = (request.piece_index >> 24) & 0xFF;
-  payload[1] = (request.piece_index >> 16) & 0xFF;
-  payload[2] = (request.piece_index >> 8) & 0xFF;
-  payload[3] = request.piece_index & 0xFF;
+  uint32_t piece_index_nbo = convert_bo(request.piece_index);
+  uint32_t block_offset_nbo = convert_bo(request.block_offset);
+  uint32_t block_length_nbo = convert_bo(request.block_length);
 
-  // Set the block offset
-  payload[4] = (request.block_offset >> 24) & 0xFF;
-  payload[5] = (request.block_offset >> 16) & 0xFF;
-  payload[6] = (request.block_offset >> 8) & 0xFF;
-  payload[7] = request.block_offset & 0xFF;
+  std::memcpy(payload.data(), &piece_index_nbo, sizeof(piece_index_nbo));
+  std::memcpy(payload.data() + 4, &block_offset_nbo, sizeof(block_offset_nbo));
+  std::memcpy(payload.data() + 8, &block_length_nbo, sizeof(block_length_nbo));
 
-  // Set the block length
-  payload[8] = (request.block_length >> 24) & 0xFF;
-  payload[9] = (request.block_length >> 16) & 0xFF;
-  payload[10] = (request.block_length >> 8) & 0xFF;
-  payload[11] = request.block_length & 0xFF;
-
-  // Construct the request message using the helper function
   return construct_message(MessageType::Request, payload);
 }
 
 inline uint32_t get_header_length(const std::vector<uint8_t>& header) {
-  return (header[0] << 24) | (header[1] << 16) | (header[2] << 8) | header[3];
+  uint32_t header_length;
+  std::memcpy(&header_length, header.data(), sizeof(header_length));
+  return convert_bo(header_length);
 }
 
 inline std::pair<uint32_t, uint32_t> retrieve_piece_index_and_block_offset(
     const std::vector<uint8_t>& payload) {
-  uint32_t piece_index =
-      (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+  uint32_t piece_index, block_offset;
+  std::memcpy(&piece_index, payload.data(), sizeof(piece_index));
+  std::memcpy(&block_offset, payload.data() + 4, sizeof(block_offset));
 
-  uint32_t block_offset =
-      (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
-
-  return {piece_index, block_offset};
+  return {convert_bo(piece_index), convert_bo(block_offset)};
 }
 
 inline std::vector<uint8_t> get_peer_bitfield(

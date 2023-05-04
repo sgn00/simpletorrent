@@ -8,8 +8,8 @@
 
 namespace simpletorrent {
 
-TorrentMetadata Parser::parse_torrent_file(
-    const std::string& torrent_file) const {
+namespace parser {
+TorrentMetadata parse_torrent_file(const std::string& torrent_file) {
   LOG_INFO("Parsing torrent file at {}", torrent_file);
 
   try {
@@ -76,8 +76,8 @@ TorrentMetadata Parser::parse_torrent_file(
   }
 }
 
-std::vector<std::string> Parser::parse_piece_hash(
-    const bencode::dict& info_dict) const {
+namespace {
+std::vector<std::string> parse_piece_hash(const bencode::dict& info_dict) {
   auto pieces = std::get<bencode::string>(info_dict.at("pieces"));
   std::vector<std::string> piece_hashes;
   for (size_t i = 0; i < pieces.size(); i += 20) {
@@ -86,15 +86,15 @@ std::vector<std::string> Parser::parse_piece_hash(
   return piece_hashes;
 }
 
-std::string Parser::calc_info_hash(const bencode::dict& data_dict) const {
+std::string calc_info_hash(const bencode::dict& data_dict) {
   std::string info_string = bencode::encode(data_dict.at("info"));
   SHA1 checksum;
   checksum.update(info_string);
   return checksum.final();
 }
 
-void Parser::add_trackers(const bencode::dict& torrent_data_dict,
-                          TorrentMetadata& data) const {
+void add_trackers(const bencode::dict& torrent_data_dict,
+                  TorrentMetadata& data) {
   if (torrent_data_dict.count("announce-list")) {
     auto announce_list =
         std::get<bencode::list>(torrent_data_dict.at("announce-list"));
@@ -116,8 +116,7 @@ void Parser::add_trackers(const bencode::dict& torrent_data_dict,
   }
 }
 
-void Parser::add_files(const bencode::dict& info_dict,
-                       TorrentMetadata& data) const {
+void add_files(const bencode::dict& info_dict, TorrentMetadata& data) {
   bool is_single_file = info_dict.count("length") == 1;
 
   if (is_single_file) {
@@ -143,5 +142,8 @@ void Parser::add_files(const bencode::dict& info_dict,
     data.files = files;
   }
 }
+
+}  // namespace
+}  // namespace parser
 
 }  // namespace simpletorrent

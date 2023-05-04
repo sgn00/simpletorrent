@@ -25,18 +25,15 @@ class Statistics {
   void stop_thread();
 
  private:
-  Statistics();
-
   uint32_t total_pieces_;
   uint32_t piece_length_;
   uint32_t completed_pieces_;
   uint32_t connected_peers_;
-
   std::chrono::_V2::steady_clock::time_point start_time_;
-
   indicators::BlockProgressBar progress_bar_;
-
   std::thread drawer_thread_;
+
+  Statistics();
 
   void draw_progress();
 };

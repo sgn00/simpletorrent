@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-#include "simpletorrent/CustomException.h"
 #include "simpletorrent/Duration.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/MessageUtil.h"
@@ -126,7 +125,7 @@ asio::awaitable<void> Peer::receive_handshake_response() {
   if (peer_id_op.has_value()) {
     peer_id_ = peer_id_op.value();
   } else {
-    throw ParseHandshakeException("could not parse handshake response");
+    throw std::runtime_error("could not parse handshake response");
   }
 }
 
@@ -281,6 +280,11 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
   //   std::cout << i << ",";
   // }
   // std::cout << std::endl;
+  bool no_pieces = std::all_of(peer_bitfield.begin(), peer_bitfield.end(),
+                               [](uint8_t value) { return value == 0; });
+  if (no_pieces) {
+    throw std::runtime_error("peer has no pieces, terminating connection");
+  }
   piece_manager_.update_piece_frequencies(peer_bitfield, peer_num_id_);
 }
 

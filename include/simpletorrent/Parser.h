@@ -8,28 +8,28 @@
 
 namespace simpletorrent {
 
-class Parser {
- public:
-  TorrentMetadata parse_torrent_file(const std::string& torrent_file) const;
+namespace parser {
 
- private:
-  void parse_multi_file_info(const bencode::dict& info_dict) const;
+TorrentMetadata parse_torrent_file(const std::string& torrent_file);
 
-  std::vector<std::string> parse_piece_hash(
-      const bencode::dict& info_dict) const;
+namespace {
+void parse_multi_file_info(const bencode::dict& info_dict);
 
-  std::string calc_info_hash(const bencode::dict& data_dict) const;
+std::vector<std::string> parse_piece_hash(const bencode::dict& info_dict);
 
-  void add_trackers(const bencode::dict& torrent_data_dict,
-                    TorrentMetadata& data) const;
+std::string calc_info_hash(const bencode::dict& data_dict);
 
-  void add_files(const bencode::dict& info_dict, TorrentMetadata& data) const;
-};
+void add_trackers(const bencode::dict& torrent_data_dict,
+                  TorrentMetadata& data);
+
+void add_files(const bencode::dict& info_dict, TorrentMetadata& data);
+}  // namespace
 
 class ParseException : public std::runtime_error {
  public:
   explicit ParseException(const std::string& message)
       : std::runtime_error(message) {}
 };
+}  // namespace parser
 
 }  // namespace simpletorrent

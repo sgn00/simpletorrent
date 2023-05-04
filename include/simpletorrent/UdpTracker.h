@@ -21,11 +21,9 @@ class UdpTracker {
   std::string tracker_url_;
   asio::ip::udp::socket socket_;
   asio::ip::udp::endpoint tracker_endpoint_;
-
   std::string info_hash_;
   std::string our_id_;
   std::unordered_set<std::string>& peer_set_;
-
   asio::io_context& io_context_;
 
   asio::awaitable<uint64_t> send_connect_request();

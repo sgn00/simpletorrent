@@ -51,9 +51,9 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   auto connect_action_nbo = convert_bo(connect_action);
   auto transaction_id_nbo = convert_bo(transaction_id);
 
-  memcpy(connect_request.data(), &initial_connection_id_nbo, 8);
-  memcpy(connect_request.data() + 8, &connect_action_nbo, 4);
-  memcpy(connect_request.data() + 12, &transaction_id_nbo, 4);
+  std::memcpy(connect_request.data(), &initial_connection_id_nbo, 8);
+  std::memcpy(connect_request.data() + 8, &connect_action_nbo, 4);
+  std::memcpy(connect_request.data() + 12, &transaction_id_nbo, 4);
 
   socket_.send_to(asio::buffer(connect_request), tracker_endpoint_);
 
@@ -108,18 +108,18 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   constexpr uint32_t max_peers_wanted = 200;
   auto max_peers_wanted_nbo = convert_bo(max_peers_wanted);
 
-  memcpy(announce_request.data(), &connection_id_nbo, 8);
-  memcpy(announce_request.data() + 8, &announce_action_nbo, 4);
-  memcpy(announce_request.data() + 12, &transaction_id_nbo, 4);
-  memcpy(announce_request.data() + 16, hex_decode(info_hash_).data(), 20);
-  memcpy(announce_request.data() + 36, our_id_.data(), 20);
-  memcpy(announce_request.data() + 56, &zero_64, 8);  // downloaded
-  memcpy(announce_request.data() + 64, &zero_64, 8);  // left
-  memcpy(announce_request.data() + 72, &zero_64, 8);  // uploaded
-  memcpy(announce_request.data() + 80, &zero_32, 4);  // event
-  memcpy(announce_request.data() + 84, &zero_32, 4);  // IP
-  memcpy(announce_request.data() + 88, &max_peers_wanted_nbo, 4);
-  memcpy(announce_request.data() + 92, &my_port_nbo, 2);
+  std::memcpy(announce_request.data(), &connection_id_nbo, 8);
+  std::memcpy(announce_request.data() + 8, &announce_action_nbo, 4);
+  std::memcpy(announce_request.data() + 12, &transaction_id_nbo, 4);
+  std::memcpy(announce_request.data() + 16, hex_decode(info_hash_).data(), 20);
+  std::memcpy(announce_request.data() + 36, our_id_.data(), 20);
+  std::memcpy(announce_request.data() + 56, &zero_64, 8);  // downloaded
+  std::memcpy(announce_request.data() + 64, &zero_64, 8);  // left
+  std::memcpy(announce_request.data() + 72, &zero_64, 8);  // uploaded
+  std::memcpy(announce_request.data() + 80, &zero_32, 4);  // event
+  std::memcpy(announce_request.data() + 84, &zero_32, 4);  // IP
+  std::memcpy(announce_request.data() + 88, &max_peers_wanted_nbo, 4);
+  std::memcpy(announce_request.data() + 92, &my_port_nbo, 2);
 
   socket_.send_to(asio::buffer(announce_request), tracker_endpoint_);
 
@@ -156,7 +156,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   int prv_num = peer_set_.size();
   for (size_t i = 0; i < num_peers; i++) {
     asio::ip::address_v4::bytes_type ip_bytes;
-    memcpy(ip_bytes.data(), announce_response.data() + 20 + (i * 6), 4);
+    std::memcpy(ip_bytes.data(), announce_response.data() + 20 + (i * 6), 4);
     uint16_t port = convert_bo(*(reinterpret_cast<std::uint16_t*>(
         announce_response.data() + 20 + (i * 6) + 4)));
     asio::ip::address_v4 ip_address(ip_bytes);

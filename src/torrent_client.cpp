@@ -33,8 +33,7 @@ std::string TorrentClient::generate_random_client_id(size_t length) {
 
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
-  Parser parser;
-  TorrentMetadata metadata = parser.parse_torrent_file(torrent_file);
+  TorrentMetadata metadata = parser::parse_torrent_file(torrent_file);
 
   std::cout << "Num trackers: " << metadata.tracker_url_list.size()
             << std::endl;

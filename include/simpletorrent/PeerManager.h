@@ -24,21 +24,13 @@ class PeerManager {
 
  private:
   static constexpr uint32_t MAX_NUM_CONNECTED_PEERS = 60;
-
   std::string info_hash_;
-
   std::string our_id_;
-
   uint32_t num_pieces_;
-
   asio::io_context io_context_;
-
   PieceManager& piece_manager_;
-
   std::vector<std::unique_ptr<Peer>> peers_;
-
   std::vector<PeerState> peers_state_;
-
   std::vector<PeerConnInfo> peer_ips_;
 
   asio::awaitable<void> cleanup_and_open_connections();

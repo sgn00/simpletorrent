@@ -10,20 +10,23 @@
 
 namespace simpletorrent {
 struct BufferPiece {
+  uint32_t piece_index;
+  std::string data;
+  std::vector<BlockState> blocks_state;
+  bool empty;
+
   BufferPiece(uint32_t num_blocks, uint32_t piece_length)
       : piece_index(piece_index),
         data(piece_length, '\0'),
         blocks_state(num_blocks, BlockState::DONT_HAVE),
         empty(true) {}
-
-  uint32_t piece_index;
-  std::string data;
-  std::vector<BlockState> blocks_state;
-  bool empty;
 };
 
 class Buffer {
  public:
+  static constexpr uint32_t DEFAULT_BUFFER_SIZE =
+      32;  // max 32 piece parts in memory
+
   Buffer(uint32_t block_length, uint32_t piece_length, uint32_t buffer_size);
 
   std::vector<uint32_t> get_pieces_in_buffer() const;
@@ -47,18 +50,12 @@ class Buffer {
   // for debug
   std::vector<BlockState> get_block_state(uint32_t piece_index);
 
-  static constexpr uint32_t DEFAULT_BUFFER_SIZE =
-      32;  // max 32 piece parts in memory
-
  private:
   std::vector<BufferPiece> buffer_;
-
   std::unordered_map<uint32_t, uint32_t>
       piece_buffer_map_;  // maps piece index to buffer index
-
   const uint32_t block_length_;
   const uint32_t normal_piece_length_;  // only differs for last piece
-
   mutable FastRandom rng_;
 };
 }  // namespace simpletorrent
