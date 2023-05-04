@@ -17,7 +17,6 @@ include(FetchContent)
 
 FetchContent_Declare(asio GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
                           GIT_TAG f693a3eb7fe72a5f19b975289afc4f437d373d9c)
-
 FetchContent_MakeAvailable(asio)
 
 FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git

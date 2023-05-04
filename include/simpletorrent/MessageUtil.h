@@ -111,9 +111,6 @@ inline std::vector<uint8_t> construct_message(
 
   // Payload
   message.insert(message.end(), payload.begin(), payload.end());
-  // for (auto& b : message) {
-  //   std::cout << b << ",";
-  // }
   return message;
 }
 
