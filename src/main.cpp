@@ -14,7 +14,6 @@
 #include "simpletorrent/Peer.h"
 #include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
-#include "simpletorrent/Util.h"
 
 using namespace simpletorrent;
 using namespace indicators;
@@ -22,7 +21,13 @@ using namespace indicators;
 int main() {
   std::string torrent_file = "../stare.torrent";
 
-  Logger::initialize(get_filename_from_path(torrent_file) + ".log");
+  std::string filename = torrent_file;
+  auto pos = torrent_file.find_last_of('/');
+  if (pos != std::string::npos) {
+    filename = torrent_file.substr(pos + 1);
+  }
+
+  Logger::initialize(filename + ".log");
   LOG_INFO("Initialized");
 
   TorrentClient tc;

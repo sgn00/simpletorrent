@@ -5,7 +5,6 @@
 #include <sha1.hpp>
 
 #include "simpletorrent/Logger.h"
-#include "simpletorrent/Util.h"
 
 namespace simpletorrent {
 

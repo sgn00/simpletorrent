@@ -9,11 +9,27 @@
 #include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
 #include "simpletorrent/Tracker.h"
-#include "simpletorrent/Util.h"
 
 namespace simpletorrent {
 
-TorrentClient::TorrentClient() { our_id_ = "ABCDEFGHIJ1234567890"; }
+TorrentClient::TorrentClient() : our_id_(generate_random_client_id(20)) {}
+
+std::string TorrentClient::generate_random_client_id(size_t length) {
+  constexpr std::string_view alphanum =
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dist(0,
+                                       static_cast<int>(alphanum.size() - 1));
+
+  std::string result;
+  result.reserve(length);
+  std::generate_n(std::back_inserter(result), length,
+                  [&]() { return alphanum[dist(gen)]; });
+
+  return result;
+}
 
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file

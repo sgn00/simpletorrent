@@ -31,5 +31,11 @@ class UdpTracker {
   asio::awaitable<uint64_t> send_connect_request();
 
   asio::awaitable<void> send_announce_request(uint64_t connection_id);
+
+  static std::string extract_host(const std::string& announce_url);
+
+  static std::string extract_port(const std::string& announce_url);
+
+  static uint32_t random_uint32();
 };
 }  // namespace simpletorrent

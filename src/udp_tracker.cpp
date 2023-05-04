@@ -169,4 +169,38 @@ asio::awaitable<void> UdpTracker::send_announce_request(
 
   co_return;
 }
+
+std::string UdpTracker::extract_host(const std::string& announce_url) {
+  std::size_t host_start = announce_url.find("://");
+  if (host_start == std::string::npos) {
+    throw std::runtime_error("Invalid announce URL");
+  }
+  host_start += 3;
+
+  std::size_t host_end = announce_url.find(':', host_start);
+  if (host_end == std::string::npos) {
+    host_end = announce_url.find('/', host_start);
+  }
+
+  return announce_url.substr(host_start, host_end - host_start);
+}
+
+std::string UdpTracker::extract_port(const std::string& announce_url) {
+  std::size_t port_start = announce_url.find(':', announce_url.find("://") + 3);
+  if (port_start == std::string::npos) {
+    throw std::runtime_error("No port in UDP url " + announce_url);
+  }
+  port_start++;
+
+  std::size_t port_end = announce_url.find('/', port_start);
+  return announce_url.substr(port_start, port_end - port_start);
+}
+
+uint32_t UdpTracker::random_uint32() {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint32_t> dist(0, UINT32_MAX);
+  return dist(gen);
+}
+
 }  // namespace simpletorrent

@@ -17,6 +17,8 @@ class TorrentClient {
 
  private:
   std::string our_id_;
+
+  static std::string generate_random_client_id(size_t length);
 };
 
 }  // namespace simpletorrent
