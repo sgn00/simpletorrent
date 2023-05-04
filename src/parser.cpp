@@ -9,72 +9,6 @@
 namespace simpletorrent {
 
 namespace parser {
-TorrentMetadata parse_torrent_file(const std::string& torrent_file) {
-  LOG_INFO("Parsing torrent file at {}", torrent_file);
-
-  try {
-    std::ifstream input(torrent_file, std::ios::binary);
-    if (!input.is_open()) {
-      throw ParseException("Failed to open torrent file");
-    }
-
-    auto torrent_data_dict = std::get<bencode::dict>(bencode::decode(input));
-
-    TorrentMetadata data;
-
-    auto info_dict = std::get<bencode::dict>(torrent_data_dict.at("info"));
-
-    data.piece_hashes = parse_piece_hash(info_dict);
-
-    add_trackers(torrent_data_dict, data);
-
-    if (data.tracker_url_list.empty()) {
-      throw ParseException("No HTTP trackers found");
-    }
-
-    data.output_path = std::get<bencode::string>(info_dict.at("name"));
-
-    data.info_hash = calc_info_hash(torrent_data_dict);
-
-    data.piece_length =
-        std::get<bencode::integer>(info_dict.at("piece length"));
-
-    add_files(info_dict, data);
-
-    LOG_INFO("Successfully parsed torrent file at {}", torrent_file);
-    LOG_INFO(
-        "Torrent metadata: num trackers {} | num pieces: {} | piece_length: "
-        "{} | "
-        "total "
-        "length: {} | Is multi file: {}",
-        data.tracker_url_list.size(), data.piece_hashes.size(),
-        data.piece_length, data.total_length, !data.files.empty());
-
-    // std::cout << "Torrent Metadata" << std::endl;
-    // std::cout << "Announce url: " << data.announce_url << std::endl;
-    // std::cout << "Piece hashes size: " << data.piece_hashes.size() <<
-    // std::endl; std::cout << "Piece len: " << data.piece_length << std::endl;
-    // std::cout << "Total len: " << data.total_length << std::endl;
-    // std::cout << "Info hash: " << data.info_hash << std::endl;
-    // std::cout << "Output path: " << data.output_path << std::endl;
-    // std::cout << "Files: " << std::endl;
-    // for (const auto& f : data.files) {
-    //   std::cout << "  "
-    //             << "Len: " << f.file_length << " ";
-    //   for (const auto& p : f.paths) {
-    //     std::cout << p << "|";
-    //   }
-    //   std::cout << std::endl;
-    // }
-
-    return data;
-  } catch (const std::exception& e) {
-    LOG_CRITICAL("Failed parsing torrent file at {} | Error: {}", torrent_file,
-                 e.what());
-    throw ParseException("Failed parsing torrent file at " + torrent_file +
-                         " | Error: " + e.what());
-  }
-}
 
 namespace {
 std::vector<std::string> parse_piece_hash(const bencode::dict& info_dict) {
@@ -144,6 +78,74 @@ void add_files(const bencode::dict& info_dict, TorrentMetadata& data) {
 }
 
 }  // namespace
+
+TorrentMetadata parse_torrent_file(const std::string& torrent_file) {
+  LOG_INFO("Parsing torrent file at {}", torrent_file);
+
+  try {
+    std::ifstream input(torrent_file, std::ios::binary);
+    if (!input.is_open()) {
+      throw ParseException("Failed to open torrent file");
+    }
+
+    auto torrent_data_dict = std::get<bencode::dict>(bencode::decode(input));
+
+    TorrentMetadata data;
+
+    auto info_dict = std::get<bencode::dict>(torrent_data_dict.at("info"));
+
+    data.piece_hashes = parse_piece_hash(info_dict);
+
+    add_trackers(torrent_data_dict, data);
+
+    if (data.tracker_url_list.empty()) {
+      throw ParseException("No HTTP trackers found");
+    }
+
+    data.output_path = std::get<bencode::string>(info_dict.at("name"));
+
+    data.info_hash = calc_info_hash(torrent_data_dict);
+
+    data.piece_length =
+        std::get<bencode::integer>(info_dict.at("piece length"));
+
+    add_files(info_dict, data);
+
+    LOG_INFO("Successfully parsed torrent file at {}", torrent_file);
+    LOG_INFO(
+        "Torrent metadata: num trackers {} | num pieces: {} | piece_length: "
+        "{} | "
+        "total "
+        "length: {} | Is multi file: {}",
+        data.tracker_url_list.size(), data.piece_hashes.size(),
+        data.piece_length, data.total_length, !data.files.empty());
+
+    // std::cout << "Torrent Metadata" << std::endl;
+    // std::cout << "Announce url: " << data.announce_url << std::endl;
+    // std::cout << "Piece hashes size: " << data.piece_hashes.size() <<
+    // std::endl; std::cout << "Piece len: " << data.piece_length << std::endl;
+    // std::cout << "Total len: " << data.total_length << std::endl;
+    // std::cout << "Info hash: " << data.info_hash << std::endl;
+    // std::cout << "Output path: " << data.output_path << std::endl;
+    // std::cout << "Files: " << std::endl;
+    // for (const auto& f : data.files) {
+    //   std::cout << "  "
+    //             << "Len: " << f.file_length << " ";
+    //   for (const auto& p : f.paths) {
+    //     std::cout << p << "|";
+    //   }
+    //   std::cout << std::endl;
+    // }
+
+    return data;
+  } catch (const std::exception& e) {
+    LOG_CRITICAL("Failed parsing torrent file at {} | Error: {}", torrent_file,
+                 e.what());
+    throw ParseException("Failed parsing torrent file at " + torrent_file +
+                         " | Error: " + e.what());
+  }
+}
+
 }  // namespace parser
 
 }  // namespace simpletorrent

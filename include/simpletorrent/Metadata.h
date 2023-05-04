@@ -47,7 +47,7 @@ struct Block {  // this is what the Peer sends us
   std::vector<uint8_t>::const_iterator data_end;
 };
 
-struct PieceMetadata {  // this is in our vector of PieceMetadata, for checking
+struct PieceMetadata {  // Used in piece_manager, for checking
                         // of hash and whether it is completed
   const std::string piece_hash;
   const uint32_t current_piece_length;

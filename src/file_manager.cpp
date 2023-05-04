@@ -92,7 +92,7 @@ std::shared_ptr<std::ofstream> FileManager::create_and_open_file(
 void FileManager::file_writer() {
   LOG_INFO("FileManager: writer thread spawned");
   uint32_t write_count = 0;
-  while (!GlobalState::is_stop_download() && write_count != num_pieces_) {
+  while (!globalstate::is_stop_download() && write_count != num_pieces_) {
     std::pair<size_t, std::string> value;
     if (write_queue_.try_dequeue(value)) {
       // depending on single or multifile torrent we do different things

@@ -9,10 +9,6 @@
 
 namespace simpletorrent {
 
-constexpr int PORT = 8080;
-
-constexpr int TRACKER_TIMEOUT = 8000;
-
 class HttpTracker {
  public:
   HttpTracker(const std::string& tracker_url, const std::string& info_hash,
@@ -22,6 +18,9 @@ class HttpTracker {
   void add_peers();
 
  private:
+  constexpr static int PORT = 8080;
+  constexpr static int TRACKER_TIMEOUT = 8000;
+  constexpr static std::string_view MAX_PEERS_FROM_TRACKER = "200";
   std::string tracker_url_;
   std::string info_hash_;
   std::string our_id_;

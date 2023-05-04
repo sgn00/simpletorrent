@@ -158,7 +158,7 @@ void PieceManager::remove_peer(uint32_t peer_id) {
 }
 
 bool PieceManager::continue_download() const {
-  return !GlobalState::is_stop_download() &&
+  return !globalstate::is_stop_download() &&
          num_pieces_completed_ != pieces_.size();
 }
 

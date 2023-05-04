@@ -46,7 +46,7 @@ void Statistics::init(uint32_t num_pieces, uint32_t piece_length) {
 }
 
 void Statistics::draw_progress() {
-  while (!GlobalState::is_stop_download()) {
+  while (!globalstate::is_stop_download()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     auto now = std::chrono::steady_clock::now();
     auto elapsed_time =

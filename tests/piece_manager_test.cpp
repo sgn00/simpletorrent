@@ -68,7 +68,7 @@ TEST_CASE("PieceManager update_piece_frequencies select_next_block",
     REQUIRE(res.block_length == block_length);
   }
 
-  GlobalState::set_stop_download();
+  globalstate::set_stop_download();
 }
 
 TEST_CASE(
@@ -105,7 +105,7 @@ TEST_CASE(
     REQUIRE(res.block_length == block_length);
   }
 
-  GlobalState::set_stop_download();
+  globalstate::set_stop_download();
 }
 
 TEST_CASE(
@@ -133,7 +133,7 @@ TEST_CASE(
   auto res_2 = pm.select_next_block(1);
   REQUIRE(!res_2.has_value());
 
-  GlobalState::set_stop_download();
+  globalstate::set_stop_download();
 }
 
 TEST_CASE(
@@ -167,11 +167,11 @@ TEST_CASE(
   REQUIRE(res_3.value().piece_index ==
           1);  // pseudorandom, but seed same so result always same
 
-  GlobalState::set_stop_download();
+  globalstate::set_stop_download();
 }
 
 TEST_CASE("PieceManager add_block complete one piece", "[PieceManager]") {
-  GlobalState::set_continue_download();
+  globalstate::set_continue_download();
   size_t piece_length = 20;
   size_t total_length = 20;
   uint32_t block_length = 5;

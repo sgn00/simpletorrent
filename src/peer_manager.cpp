@@ -66,7 +66,7 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
 
     if (peers_.size() == 0) {
       LOG_INFO("PeerManager: No peers left! Stopping download!");
-      GlobalState::set_stop_download();  // terminate gracefully if no peers
+      globalstate::set_stop_download();  // terminate gracefully if no peers
                                          // left
     }
 

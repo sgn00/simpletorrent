@@ -39,7 +39,7 @@ int main() {
     LOG_CRITICAL("FATAL error shutting down | Error: {}", e.what());
   }
 
-  GlobalState::set_stop_download();
+  globalstate::set_stop_download();
   Statistics::instance().stop_thread();
 
   LOG_INFO("Stopping torrent client...");
