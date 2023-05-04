@@ -8,15 +8,15 @@
 namespace simpletorrent {
 
 struct FileMetadata {
-  long long file_length;
+  uint64_t file_length;
   std::vector<std::string> paths;
 };
 
 struct TorrentMetadata {
   std::vector<std::string> tracker_url_list;
   std::vector<std::string> piece_hashes;
-  long long piece_length;
-  long long total_length;
+  uint64_t piece_length;
+  uint64_t total_length;
   std::string output_path;
   std::string info_hash;
   std::vector<FileMetadata> files;

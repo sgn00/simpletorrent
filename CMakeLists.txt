@@ -39,22 +39,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-
-file(GLOB_RECURSE SIMPLETORRENT_SOURCES "src/*.cpp" EXCLUDE "src/main.cpp")
-
+# Build library
+file(GLOB_RECURSE SIMPLETORRENT_SOURCES "src/*.cpp")
+# Exclude main.cpp from the list of sources for the library
+list(FILTER SIMPLETORRENT_SOURCES EXCLUDE REGEX "src/main.cpp")
 add_library(simpletorrent_lib ${SIMPLETORRENT_SOURCES})
-
-message(STATUS "Source files: ${SIMPLETORRENT_SOURCES}")
-
 target_include_directories(simpletorrent_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/external/include ${asio_SOURCE_DIR}/asio/include)
-
 target_link_libraries(simpletorrent_lib PUBLIC Threads::Threads cpr::cpr readerwriterqueue spdlog::spdlog indicators)
 
+# Main executable
 add_executable(simpletorrent src/main.cpp)
-
-target_include_directories(simpletorrent PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/external/include)
-
-target_link_libraries(simpletorrent PRIVATE simpletorrent_lib Threads::Threads)
+target_link_libraries(simpletorrent PRIVATE simpletorrent_lib)
 
 add_subdirectory(tests)
 
