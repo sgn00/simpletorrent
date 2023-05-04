@@ -16,6 +16,9 @@ PieceManager::PieceManager(const TorrentMetadata& data, uint32_t block_length,
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       file_manager_(data) {
+  std::cout << "Total Len: " << data.total_length
+            << " | Num Pieces: " << data.piece_hashes.size()
+            << " | Piece Len: " << data.piece_length << std::endl;
   size_t num_pieces = data.piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = data.total_length % data.piece_length;
@@ -29,8 +32,6 @@ PieceManager::PieceManager(const TorrentMetadata& data, uint32_t block_length,
         data.piece_hashes.at(i), static_cast<uint32_t>(current_piece_length),
         static_cast<uint32_t>(num_blocks), PieceState::NOT_STARTED);
   }
-  std::cout << "Last piece len: " << last_piece_length << std::endl;
-  std::cout << "Num pieces: " << pieces_.size() << std::endl;
 }
 
 std::optional<BlockRequest> PieceManager::select_next_block(uint32_t peer_id) {

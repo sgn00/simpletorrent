@@ -35,17 +35,16 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
   TorrentMetadata metadata = parser::parse_torrent_file(torrent_file);
 
-  std::cout << "Num trackers: " << metadata.tracker_url_list.size()
-            << std::endl;
-
   Tracker tracker(metadata.tracker_url_list, metadata.info_hash, our_id_);
 
   // 2. Fetch peer info from Tracker
-  std::cout << "connecting to trackers" << std::endl;
+  std::cout << "Connecting to trackers..." << std::endl;
   tracker.add_peers();
 
   auto peer_conn_info = tracker.get_peers();
   LOG_INFO("Num peers from trackers: {}", peer_conn_info.size());
+  std::cout << "Num peers from trackers: " << peer_conn_info.size()
+            << std::endl;
 
   PieceManager piece_manager =
       PieceManager(metadata, PieceManager::DEFAULT_BLOCK_LENGTH,
@@ -58,11 +57,10 @@ void TorrentClient::start_download(const std::string& torrent_file) {
   PeerManager peer_manager(piece_manager, std::move(peer_conn_info),
                            metadata.info_hash, our_id_,
                            metadata.piece_hashes.size());
+
+  std::cout << "Starting download..." << std::endl;
+  LOG_INFO("Starting download...");
   peer_manager.start();
-  // std::cout << "total num pieces to download: " <<
-  // metadata.piece_hashes.size()
-  //           << std::endl;
-  // std::cout << "finished download" << std::endl;
 }
 
 }  // namespace simpletorrent

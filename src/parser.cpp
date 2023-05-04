@@ -88,6 +88,9 @@ TorrentMetadata parse_torrent_file(const std::string& torrent_file) {
       throw ParseException("Failed to open torrent file");
     }
 
+    LOG_INFO("Reading torrent file: {}", torrent_file);
+    std::cout << "Reading torrent file: " << torrent_file << std::endl;
+
     auto torrent_data_dict = std::get<bencode::dict>(bencode::decode(input));
 
     TorrentMetadata data;

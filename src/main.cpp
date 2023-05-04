@@ -5,7 +5,6 @@
 #include <bencode.hpp>
 #include <fstream>
 #include <indicators/cursor_control.hpp>
-#include <indicators/progress_bar.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -16,9 +15,17 @@
 #include "simpletorrent/TorrentClient.h"
 
 using namespace simpletorrent;
-using namespace indicators;
+
+void sigint_handler(int signal_num) {
+  std::cout << "Stopping torrent client..." << std::endl;
+  globalstate::set_stop_download();
+  Statistics::instance().stop_thread();
+  _exit(signal_num);
+}
 
 int main() {
+  signal(SIGINT, sigint_handler);
+
   std::string torrent_file = "../stare.torrent";
 
   std::string filename = torrent_file;
@@ -33,7 +40,7 @@ int main() {
   TorrentClient tc;
   try {
     tc.start_download(torrent_file);
-    LOG_INFO("Completed");
+    LOG_INFO("Download successfully completed");
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
     LOG_CRITICAL("FATAL error shutting down | Error: {}", e.what());

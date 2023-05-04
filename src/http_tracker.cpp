@@ -64,7 +64,6 @@ void HttpTracker::parse_tracker_response(const bencode::data& response) {
       auto peer_map = std::get<bencode::dict>(peer);
       auto ip = std::get<bencode::string>(peer_map.at("ip"));
       auto port = std::get<bencode::integer>(peer_map.at("port"));
-      std::cout << ip << ":" << std::to_string(port) << std::endl;
       peer_set_.insert(ip + ":" + std::to_string(port));
     }
   } else if (std::holds_alternative<bencode::string>(

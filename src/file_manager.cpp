@@ -75,7 +75,6 @@ FileManager::calculate_files_write_info(std::size_t offset,
 std::shared_ptr<std::ofstream> FileManager::create_and_open_file(
     const std::filesystem::path& path, size_t total_length) {
   // create any parent directories
-  std::cout << "Path: " << path << std::endl;
   if (path.has_parent_path()) {
     std::filesystem::create_directories(path.parent_path());
   }
