@@ -73,7 +73,7 @@ void Statistics::draw_progress() {
     if (download_speed > 0) {
       auto remaining_length = total_length_ - total_bytes_downloaded;
       eta_time = format_duration(static_cast<uint64_t>(remaining_length) /
-                                 static_cast<uint64_t>(download_speed));
+                                 static_cast<uint64_t>(download_speed * 1024));
     }
 
     progress_bar_.set_option(indicators::option::PostfixText{
