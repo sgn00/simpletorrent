@@ -45,7 +45,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
   constexpr uint32_t connect_action = 0;
 
   std::array<char, 16> connect_request;
-  uint32_t transaction_id = 5;
+  uint32_t transaction_id = random_uint32();
 
   auto initial_connection_id_nbo = convert_bo(initial_connection_id);
   auto connect_action_nbo = convert_bo(connect_action);
@@ -94,7 +94,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
 asio::awaitable<void> UdpTracker::send_announce_request(
     uint64_t connection_id) {
   constexpr uint32_t announce_action = 1;
-  uint32_t transaction_id = 10;
+  uint32_t transaction_id = random_uint32();
   std::array<char, 98> announce_request;
 
   auto connection_id_nbo = convert_bo(connection_id);
@@ -102,8 +102,8 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   auto transaction_id_nbo = convert_bo(transaction_id);
   constexpr uint64_t zero_64 = 0;
   constexpr uint32_t zero_32 = 0;
-  constexpr uint16_t random_port = 80;
-  auto random_port_nbo = convert_bo(random_port);
+  constexpr uint16_t my_port = 80;
+  auto my_port_nbo = convert_bo(my_port);
 
   constexpr uint32_t max_peers_wanted = 200;
   auto max_peers_wanted_nbo = convert_bo(max_peers_wanted);
@@ -119,7 +119,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   memcpy(announce_request.data() + 80, &zero_32, 4);  // event
   memcpy(announce_request.data() + 84, &zero_32, 4);  // IP
   memcpy(announce_request.data() + 88, &max_peers_wanted_nbo, 4);
-  memcpy(announce_request.data() + 92, &random_port_nbo, 2);
+  memcpy(announce_request.data() + 92, &my_port_nbo, 2);
 
   socket_.send_to(asio::buffer(announce_request), tracker_endpoint_);
 

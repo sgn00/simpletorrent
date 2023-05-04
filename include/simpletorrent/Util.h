@@ -95,8 +95,8 @@ inline std::string extract_port(const std::string& announce_url) {
 
 // Define a concept that checks if the type is uint32_t or uint64_t
 template <typename T>
-concept Uint =
-    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint16_t>;
+concept Uint = std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> ||
+               std::is_same_v<T, uint16_t>;
 
 template <Uint T>
 T convert_bo(T value) {
@@ -109,6 +109,13 @@ T convert_bo(T value) {
   } else {
     return value;
   }
+}
+
+inline uint32_t random_uint32() {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint32_t> dist(0, UINT32_MAX);
+  return dist(gen);
 }
 
 }  // namespace simpletorrent

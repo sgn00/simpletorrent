@@ -20,7 +20,7 @@ using namespace simpletorrent;
 using namespace indicators;
 
 int main() {
-  std::string torrent_file = "../debian.torrent";
+  std::string torrent_file = "../stare.torrent";
 
   Logger::initialize(get_filename_from_path(torrent_file) + ".log");
   LOG_INFO("Initialized");
