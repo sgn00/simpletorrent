@@ -39,7 +39,8 @@ std::optional<bencode::data> HttpTracker::send_request(
       {"port", std::to_string(PORT)},
       {"compact", "1"},
       {"numwant",
-       MAX_PEERS_FROM_TRACKER}  // Request up to 200 peers from the tracker
+       std::string(
+           MAX_PEERS_FROM_TRACKER)}  // Request up to 200 peers from the tracker
   };
   cpr::Response response = cpr::Get(cpr::Url{tracker_url}, parameters,
                                     cpr::Timeout{TRACKER_TIMEOUT});
