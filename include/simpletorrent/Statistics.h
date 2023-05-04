@@ -18,7 +18,7 @@ class Statistics {
 
   void update_piece_completed();
 
-  void init(uint32_t num_pieces, uint32_t piece_length);
+  void init(uint32_t num_pieces, uint32_t piece_length, uint64_t total_length);
 
   void start_draw();
 
@@ -27,6 +27,7 @@ class Statistics {
  private:
   uint32_t total_pieces_;
   uint32_t piece_length_;
+  uint64_t total_length_;
   uint32_t completed_pieces_;
   uint32_t connected_peers_;
   std::chrono::_V2::steady_clock::time_point start_time_;
@@ -36,5 +37,7 @@ class Statistics {
   Statistics();
 
   void draw_progress();
+
+  static std::string format_duration(uint64_t total_seconds);
 };
 }  // namespace simpletorrent

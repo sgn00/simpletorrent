@@ -42,9 +42,11 @@ void Statistics::update_num_peers(uint32_t num_peers) {
 
 void Statistics::update_piece_completed() { completed_pieces_++; }
 
-void Statistics::init(uint32_t num_pieces, uint32_t piece_length) {
+void Statistics::init(uint32_t num_pieces, uint32_t piece_length,
+                      uint64_t total_length) {
   total_pieces_ = num_pieces;
   piece_length_ = piece_length;
+  total_length_ = total_length;
 }
 
 void Statistics::draw_progress() {
@@ -66,13 +68,41 @@ void Statistics::draw_progress() {
     std::stringstream stream;
     stream << std::fixed << std::setprecision(2) << download_speed;
     std::string download_speed_str = stream.str();
+
+    std::string eta_time = "-";
+    if (download_speed > 0) {
+      auto remaining_length = total_length_ - total_bytes_downloaded;
+      eta_time = format_duration(static_cast<uint64_t>(remaining_length) /
+                                 static_cast<uint64_t>(download_speed));
+    }
+
     progress_bar_.set_option(indicators::option::PostfixText{
         "Peers: " + std::to_string(connected_peers_) +
-        " | Speed: " + download_speed_str + " KB/s"});
+        " | Speed: " + download_speed_str + " KB/s" + " | ETA: " + eta_time});
     progress_bar_.set_progress(static_cast<float>(completed_pieces_) /
                                static_cast<float>(total_pieces_) * 100.0f);
   }
   indicators::show_console_cursor(true);
+}
+
+std::string Statistics::format_duration(uint64_t total_seconds) {
+  int hours = total_seconds / 3600;
+  int minutes = (total_seconds % 3600) / 60;
+  int seconds = total_seconds % 60;
+
+  std::stringstream ss;
+  if (hours > 23) {
+    return ">1 day";
+  }
+  if (hours > 0) {
+    ss << hours << "h ";
+  }
+  if (minutes > 0) {
+    ss << minutes << "m ";
+  }
+  ss << seconds << "s";
+
+  return ss.str();
 }
 
 }  // namespace simpletorrent

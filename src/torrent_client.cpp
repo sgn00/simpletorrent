@@ -51,7 +51,8 @@ void TorrentClient::start_download(const std::string& torrent_file) {
                    Buffer::DEFAULT_BUFFER_SIZE);
 
   auto& stats = Statistics::instance();
-  stats.init(metadata.piece_hashes.size(), metadata.piece_length);
+  stats.init(metadata.piece_hashes.size(), metadata.piece_length,
+             metadata.total_length);
   stats.start_draw();
 
   PeerManager peer_manager(piece_manager, std::move(peer_conn_info),
