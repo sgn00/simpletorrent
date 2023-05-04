@@ -27,7 +27,7 @@ int main() {
     filename = torrent_file.substr(pos + 1);
   }
 
-  Logger::initialize(filename + ".log");
+  logger::initialize(filename + ".log");
   LOG_INFO("Initialized");
 
   TorrentClient tc;
