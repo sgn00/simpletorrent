@@ -122,25 +122,6 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       // std::cout << "Num completed piece: " << num_pieces_completed_
       //           << std::endl;
 
-      if (pieces_.size() - num_pieces_completed_ < 5) {
-        LOG_INFO("Pieces not yet completed:");
-        for (int i = 0; i < pieces_.size(); i++) {
-          if (pieces_[i].state != PieceState::COMPLETED) {
-            LOG_INFO("Piece {} not yet completed | piece state: {}", i,
-                     static_cast<int>(pieces_[i].state));
-          }
-          if (i == pieces_.size() - 1 &&
-              pieces_[i].state != PieceState::NOT_STARTED) {
-            auto blockstate = buffer_.get_block_state(i);
-            LOG_INFO("Block state for last block:");
-            for (int i = 0; i < blockstate.size(); i++) {
-              LOG_INFO("Block {} state: {}", i,
-                       static_cast<int>(blockstate[i]));
-            }
-          }
-        }
-      }
-
     } else {
       LOG_ERROR("PieceManager: Piece {} has hash mismatch", piece_index);
       pieces_.at(piece_index).state = PieceState::NOT_STARTED;
@@ -270,14 +251,8 @@ uint32_t PieceManager::calculate_block_length(
     uint32_t number_of_blocks =
         pieces_.back().current_piece_length / block_length_;
     if (block_idx_to_retrieve < number_of_blocks) {
-      if (block_idx_to_retrieve == 60) {
-        LOG_INFO("Retrieve last block len A: {}", block_length_);
-      }
       return block_length_;
     } else {
-      if (block_idx_to_retrieve == 60) {
-        LOG_INFO("Retrieve last block len B: {}", last_block_length);
-      }
       return last_block_length;
     }
     // auto count_len = pieces_.back().current_piece_length -
