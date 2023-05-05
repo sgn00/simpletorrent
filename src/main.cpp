@@ -26,7 +26,7 @@ void sigint_handler(int signal_num) {
 int main() {
   signal(SIGINT, sigint_handler);
 
-  std::string torrent_file = "../jordan.torrent";
+  std::string torrent_file = "../debian.torrent";
 
   std::string filename = torrent_file;
   auto pos = torrent_file.find_last_of('/');

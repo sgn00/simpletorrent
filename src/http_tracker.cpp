@@ -1,5 +1,6 @@
-#include <arpa/inet.h>
 #include <cpr/cpr.h>
+
+#include <asio.hpp>
 
 #include "simpletorrent/HttpTracker.h"
 #include "simpletorrent/Logger.h"
@@ -70,13 +71,14 @@ void HttpTracker::parse_tracker_response(const bencode::data& response) {
                  peer_data)) {  // or string form
     auto peers_string = std::get<bencode::string>(peer_data);
     for (size_t i = 0; i < peers_string.size(); i += 6) {
-      char ip_str[INET_ADDRSTRLEN];
-      uint32_t ip = *reinterpret_cast<const uint32_t*>(peers_string.data() + i);
-      uint16_t port = ntohs(
-          *reinterpret_cast<const uint16_t*>(peers_string.data() + i + 4));
-
-      inet_ntop(AF_INET, &ip, ip_str, INET_ADDRSTRLEN);
-      peer_set_.insert(std::string(ip_str) + ":" + std::to_string(port));
+      asio::ip::address_v4::bytes_type ip_bytes;
+      std::memcpy(ip_bytes.data(), peers_string.data() + i, 4);
+      uint16_t port = convert_bo(
+          *(reinterpret_cast<std::uint16_t*>(peers_string.data() + i + 4)));
+      asio::ip::address_v4 ip_address(ip_bytes);
+      std::string conn_str =
+          ip_address.to_string() + ":" + std::to_string(port);
+      peer_set_.insert(conn_str);
     }
   } else {
     LOG_ERROR("Invalid peer data from tracker at {}", tracker_url_);
