@@ -256,13 +256,6 @@ uint32_t PieceManager::calculate_block_length(
     } else {
       return last_block_length;
     }
-    // auto count_len = pieces_.back().current_piece_length -
-    //                  block_idx_to_retrieve * block_length_;
-    // if (count_len >= block_length_) {
-    //   block_len = block_length_;
-    // } else {
-    //   block_len = count_len;
-    // }
   }
   return block_len;
 }

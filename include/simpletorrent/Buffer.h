@@ -55,7 +55,8 @@ class Buffer {
   std::unordered_map<uint32_t, uint32_t>
       piece_buffer_map_;  // maps piece index to buffer index
   const uint32_t block_length_;
-  const uint32_t normal_piece_length_;  // only differs for last piece
+  const uint32_t normal_piece_length_;  // piece length of normal piece (except
+                                        // possibly last piece)
   mutable FastRandom rng_;
 };
 }  // namespace simpletorrent

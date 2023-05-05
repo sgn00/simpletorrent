@@ -16,7 +16,7 @@ void initialize(const std::string &filename) {
 
 spdlog::logger &instance() {
   if (!instance_) {
-    throw std::runtime_error("Logger not initialized");
+    throw std::runtime_error("logger not initialized");
   }
   return *instance_;
 }

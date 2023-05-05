@@ -74,7 +74,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
                                       sender_endpoint, asio::use_awaitable);
 
   if (*error_occurred) {
-    throw std::runtime_error("Timeout for udp tracker");
+    throw std::runtime_error("timeout for udp tracker");
   }
 
   uint32_t received_action =
@@ -83,7 +83,7 @@ asio::awaitable<uint64_t> UdpTracker::send_connect_request() {
       convert_bo(*(reinterpret_cast<uint32_t*>(connect_response.data() + 4)));
   if (received_action != connect_action ||
       received_transaction_id != transaction_id) {
-    throw std::runtime_error("Failed to receive a valid connect response");
+    throw std::runtime_error("failed to receive a valid connect response");
   }
 
   uint64_t connection_id =
@@ -139,7 +139,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
   auto bytes_received = co_await socket_.async_receive_from(
       asio::buffer(announce_response), sender_endpoint, asio::use_awaitable);
   if (*error_occurred) {
-    throw std::runtime_error("Timeout for udp tracker");
+    throw std::runtime_error("timeout for udp tracker");
   }
 
   uint32_t received_action =
@@ -148,7 +148,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
       convert_bo(*(reinterpret_cast<uint32_t*>(announce_response.data() + 4)));
   if (received_action != announce_action ||
       received_transaction_id != transaction_id) {
-    throw std::runtime_error("Failed to receive a valid announce response");
+    throw std::runtime_error("failed to receive a valid announce response");
   }
 
   auto num_peers = (bytes_received - 20) / 6;
@@ -173,7 +173,7 @@ asio::awaitable<void> UdpTracker::send_announce_request(
 std::string UdpTracker::extract_host(const std::string& announce_url) {
   std::size_t host_start = announce_url.find("://");
   if (host_start == std::string::npos) {
-    throw std::runtime_error("Invalid announce URL");
+    throw std::runtime_error("invalid announce URL");
   }
   host_start += 3;
 
@@ -188,7 +188,7 @@ std::string UdpTracker::extract_host(const std::string& announce_url) {
 std::string UdpTracker::extract_port(const std::string& announce_url) {
   std::size_t port_start = announce_url.find(':', announce_url.find("://") + 3);
   if (port_start == std::string::npos) {
-    throw std::runtime_error("No port in UDP url " + announce_url);
+    throw std::runtime_error("no port in UDP url " + announce_url);
   }
   port_start++;
 

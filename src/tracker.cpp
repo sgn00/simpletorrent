@@ -67,7 +67,7 @@ std::pair<std::string, uint16_t> Tracker::split_conn_string(
 
   int int_port = std::stoi(port_str);
   if (int_port < 0 || int_port > UINT16_MAX) {
-    throw std::out_of_range("Port out of range");
+    throw std::out_of_range("port out of range");
   }
   uint16_t port = static_cast<uint16_t>(int_port);
 

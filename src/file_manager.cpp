@@ -114,21 +114,12 @@ void FileManager::file_writer() {
         }
       }
 
-      // if (open_files_.size() != 1) {  // multi file torrent
-      //   auto [file_index, write_offset] = get_file_and_offset(value.first);
-      //   output_file_stream_ptr = open_files_[file_index].second;
-      //   file_offset = write_offset;
-      // }
-
       write_count++;
 
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
-  // std::cout << "stop download: " << stop_download << std::endl;
-  // std::cout << "write count: " << write_count
-  //           << "pieces size: " << pieces_.size() << std::endl;
 }
 
 }  // namespace simpletorrent

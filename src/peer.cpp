@@ -272,16 +272,6 @@ asio::awaitable<void> Peer::send_messages() {
 
 void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
   auto peer_bitfield = message_util::get_peer_bitfield(payload, num_pieces_);
-  // if (peer_bitfield.size() != num_pieces_) {
-  //   std::cout << "received wrong peer bitfield size: " <<
-  //   peer_bitfield.size()
-  //             << " num pieces: " << num_pieces_ << std::endl;
-  //   return;
-  // }
-  // for (int i : peer_bitfield) {
-  //   std::cout << i << ",";
-  // }
-  // std::cout << std::endl;
   bool no_pieces = std::all_of(peer_bitfield.begin(), peer_bitfield.end(),
                                [](uint8_t value) { return value == 0; });
   if (no_pieces) {
@@ -291,7 +281,6 @@ void Peer::handle_bitfield_message(const std::vector<uint8_t>& payload) {
 }
 
 asio::awaitable<void> Peer::send_block_requests() {
-  // keep attempting to send messages
   if (is_choked_) {
     co_return;
   }
@@ -302,10 +291,6 @@ asio::awaitable<void> Peer::send_block_requests() {
       LOG_INFO("No block request for peer {}", peer_num_id_);
       co_return;
     }
-    // std::cout << "sending block request: " <<
-    // block_request.value().piece_index
-    //           << " offset: " << block_request.value().block_offset
-    //           << " peer: " << peer_num_id_ << std::endl;
 
     auto request_message =
         message_util::construct_request_message(block_request.value());
