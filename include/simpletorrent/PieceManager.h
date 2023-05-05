@@ -36,6 +36,8 @@ class PieceManager {
 
   void remove_peer(uint32_t peer_id);
 
+  bool is_download_complete() const;
+
  private:
   uint32_t piece_length_;
   uint32_t block_length_;

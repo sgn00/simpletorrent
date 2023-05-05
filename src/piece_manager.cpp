@@ -16,9 +16,6 @@ PieceManager::PieceManager(const TorrentMetadata& data, uint32_t block_length,
       buffer_(block_length_, piece_length_, buffer_size),
       num_pieces_completed_(0),
       file_manager_(data) {
-  std::cout << "Total Len: " << data.total_length
-            << " | Num Pieces: " << data.piece_hashes.size()
-            << " | Piece Len: " << data.piece_length << std::endl;
   size_t num_pieces = data.piece_hashes.size();
   pieces_.reserve(num_pieces);
   size_t last_piece_length = data.total_length % data.piece_length;
@@ -142,6 +139,10 @@ void PieceManager::remove_peer(uint32_t peer_id) {
 bool PieceManager::continue_download() const {
   return !globalstate::is_stop_download() &&
          num_pieces_completed_ != pieces_.size();
+}
+
+bool PieceManager::is_download_complete() const {
+  return num_pieces_completed_ == pieces_.size();
 }
 
 void PieceManager::update_piece_frequencies(

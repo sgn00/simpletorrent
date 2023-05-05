@@ -5,6 +5,7 @@
 #include "simpletorrent/Duration.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/MessageUtil.h"
+#include "simpletorrent/Statistics.h"
 #include "simpletorrent/Util.h"
 
 namespace simpletorrent {
@@ -72,17 +73,17 @@ asio::awaitable<void> Peer::start() {
     co_return;
   }
 
-  peer_connected_count++;
-
   try {
     co_await send_interested();
   } catch (const std::exception& e) {
     LOG_ERROR("Error during send interested to peer {} | Error: {}",
               peer_num_id_, e.what());
-    peer_connected_count--;
     main_routine_has_exited_ = true;
     co_return;
   }
+
+  peer_connected_count++;
+  Statistics::instance().update_num_peers(peer_connected_count);
 
   spawned_routine_has_exited_ = false;
   asio::co_spawn(
@@ -96,6 +97,7 @@ asio::awaitable<void> Peer::start() {
   }
 
   peer_connected_count--;
+  Statistics::instance().update_num_peers(peer_connected_count);
   continue_connection_ = false;
   main_routine_has_exited_ = true;
   co_return;
@@ -259,7 +261,7 @@ asio::awaitable<void> Peer::send_messages() {
     }
 
     co_await asio::steady_timer(socket_.get_executor(),
-                                std::chrono::milliseconds(200))
+                                std::chrono::milliseconds(100))
         .async_wait(asio::use_awaitable);
   }
 

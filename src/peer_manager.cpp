@@ -5,7 +5,6 @@
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/PeerManager.h"
 #include "simpletorrent/StateTransition.h"
-#include "simpletorrent/Statistics.h"
 
 namespace simpletorrent {
 
@@ -41,7 +40,7 @@ void PeerManager::start() {
         io_context_, [&] { return peer->start(); }, asio::detached);
   }
 
-  Statistics::instance().update_num_peers(peers_.size());
+  LOG_INFO("PeerManager: Added {} peers", peers_.size());
 
   asio::co_spawn(
       io_context_, [&] { return cleanup_and_open_connections(); },
@@ -62,12 +61,14 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
 
     open_connections();
 
-    Statistics::instance().update_num_peers(peers_.size());
+    LOG_INFO("PeerManager: Managing {} peers", peers_.size());
 
     if (peers_.size() == 0) {
       LOG_INFO("PeerManager: No peers left! Stopping download!");
       globalstate::set_stop_download();  // terminate gracefully if no peers
                                          // left
+      std::cout << "No active peers to download from..stopping simpletorrent"
+                << std::endl;
     }
 
     LOG_INFO("PeerManager: Added {} peers", peers_.size() - old_size);

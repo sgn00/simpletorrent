@@ -160,8 +160,8 @@ asio::awaitable<void> UdpTracker::send_announce_request(
     uint16_t port = convert_bo(*(reinterpret_cast<std::uint16_t*>(
         announce_response.data() + 20 + (i * 6) + 4)));
     asio::ip::address_v4 ip_address(ip_bytes);
-    std::string peer_str = ip_address.to_string() + ":" + std::to_string(port);
-    peer_set_.insert(peer_str);
+    std::string conn_str = ip_address.to_string() + ":" + std::to_string(port);
+    peer_set_.insert(conn_str);
   }
 
   LOG_INFO("Udp tracker at {} contributed {} peers", tracker_url_,

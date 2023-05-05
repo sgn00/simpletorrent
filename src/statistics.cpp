@@ -82,6 +82,8 @@ void Statistics::draw_progress() {
     progress_bar_.set_progress(static_cast<float>(completed_pieces_) /
                                static_cast<float>(total_pieces_) * 100.0f);
   }
+  // Reset the console color
+  std::cout << "\033[0m";
   indicators::show_console_cursor(true);
 }
 

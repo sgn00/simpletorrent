@@ -16,23 +16,19 @@
 
 using namespace simpletorrent;
 
-void sigint_handler(int signal_num) {
-  std::cout << "Stopping torrent client..." << std::endl;
-  globalstate::set_stop_download();
-  Statistics::instance().stop_thread();
-  _exit(signal_num);
-}
+void sigint_handler(int);
+std::string get_filename(const std::string&);
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <path to torrent file>" << std::endl;
+    return 1;
+  }
+
   signal(SIGINT, sigint_handler);
 
-  std::string torrent_file = "../debian.torrent";
-
-  std::string filename = torrent_file;
-  auto pos = torrent_file.find_last_of('/');
-  if (pos != std::string::npos) {
-    filename = torrent_file.substr(pos + 1);
-  }
+  std::string torrent_file = argv[1];
+  std::string filename = get_filename(torrent_file);
 
   logger::initialize(filename + ".log");
   LOG_INFO("Initialized");
@@ -40,36 +36,29 @@ int main() {
   TorrentClient tc;
   try {
     tc.start_download(torrent_file);
-    LOG_INFO("Download successfully completed");
   } catch (const std::exception& e) {
-    std::cout << e.what() << std::endl;
+    std::cout << "Error: " << e.what() << std::endl;
+    std::cout << "Terminating simpletorrent..." << std::endl;
     LOG_CRITICAL("FATAL error shutting down | Error: {}", e.what());
   }
 
   globalstate::set_stop_download();
-  Statistics::instance().stop_thread();
 
   LOG_INFO("Stopping torrent client...");
   spdlog::shutdown();
+}
 
-  // asio::io_context io_context;
-  // PieceManager pm({}, 100, 1000, "abc");
+void sigint_handler(int signal_num) {
+  std::cout << "Stopping torrent client..." << std::endl;
+  globalstate::set_stop_download();
+  _exit(signal_num);
+}
 
-  /*
-  const std::vector<std::string>& piece_hashes,
-               size_t piece_length, size_t total_length,
-               const std::string& output_file);
-  */
-
-  // Peer p(pm, io_context, "abc", "abc", "127.0.0.1", 8080, 1);
-  // Peer p2(pm, io_context, "abc", "abc", "52.217.95.205", 80);
-  // asio::co_spawn(
-  //   io_context, [&] { return p.start(); }, asio::detached);
-  // asio::co_spawn(
-  //     io_context, [&] { return p2.start(); }, asio::detached);
-  // io_context.run();
-  // std::string torrent_file = "../debian-iso.torrent";
-
-  // TorrentClient torrentClient;
-  // torrentClient.start_download(torrent_file);
+std::string get_filename(const std::string& torrent_file) {
+  auto pos = torrent_file.find_last_of('/');
+  if (pos != std::string::npos) {
+    return torrent_file.substr(pos + 1);
+  } else {
+    return torrent_file;
+  }
 }

@@ -9,7 +9,7 @@ std::shared_ptr<spdlog::logger> instance_ = nullptr;
 namespace logger {
 void initialize(const std::string &filename) {
   if (!instance_) {
-    instance_ = spdlog::basic_logger_mt("file_logger", filename);
+    instance_ = spdlog::basic_logger_mt("simpletorrent", filename);
   }
   spdlog::flush_every(std::chrono::seconds(3));
 }

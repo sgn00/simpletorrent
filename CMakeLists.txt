@@ -5,11 +5,16 @@ project(simpletorrent VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# set(CMAKE_CXX_FLAGS "-O3")
-set(CMAKE_BUILD_TYPE Debug)
+# Set default build type if not specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+endif()
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Set specific flags for Debug and Release builds
 set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -rdynamic -g")
-# set(CMAKE_CXX_FLAGS_DEBUG "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(Threads REQUIRED)
 
