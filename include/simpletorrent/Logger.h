@@ -1,6 +1,6 @@
 #pragma once
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/spdlog.h"
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 
 #define LOG_TRACE(...) logger::instance().trace(__VA_ARGS__)
 #define LOG_DEBUG(...) logger::instance().debug(__VA_ARGS__)

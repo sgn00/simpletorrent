@@ -1,7 +1,5 @@
 #include "simpletorrent/Peer.h"
 
-#include <iostream>
-
 #include "simpletorrent/Duration.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/MessageUtil.h"
@@ -154,19 +152,15 @@ asio::awaitable<void> Peer::receive_messages() {
   using namespace message_util;
   std::vector<uint8_t> header(4);
 
-  // Keep attempting to read messages until download is complete or we have been
-  // signalled to exit
   while (continue_connection_) {
     asio::steady_timer timer(socket_.get_executor());
 
-    // Read header to get message length
     uint32_t message_length = co_await read_header(timer, header);
     // Handle keep-alive message
     if (message_length == 0) {
       continue;
     }
 
-    // Read message type
     uint8_t message_type;
     set_timeout(duration::RECV_MSG_TIMEOUT, timer);
     co_await asio::async_read(socket_, asio::buffer(&message_type, 1),
@@ -177,7 +171,6 @@ asio::awaitable<void> Peer::receive_messages() {
 
     uint32_t payload_length = message_length - 1;
 
-    // Read payload
     std::vector<uint8_t> payload(payload_length);
 
     set_timeout(duration::RECV_MSG_TIMEOUT, timer);
@@ -215,37 +208,28 @@ void Peer::handle_message(message_util::MessageType type,
       is_choked_ = true;
       break;
     case MessageType::Unchoke:
-      //  std::cout << "Received unchoke message" << std::endl;
       is_choked_ = false;
       break;
     case MessageType::Interested:
-      //  std::cout << "Received interested message" << std::endl;
       break;
     case MessageType::NotInterested:
-      //  std::cout << "Received not interested message" << std::endl;
       break;
     case MessageType::Have:
-      // std::cout << "Received have message" << std::endl;
       break;
     case MessageType::Bitfield:
       handle_bitfield_message(payload);
       break;
     case MessageType::Request:
-      //  std::cout << "Received request message" << std::endl;
       break;
     case MessageType::Piece:
-      //  std::cout << "Received piece message" << std::endl;
       handle_piece_message(payload);
       break;
     case MessageType::Cancel:
-      //  std::cout << "Received cancel message" << std::endl;
       break;
     case MessageType::Port:
-      //   std::cout << "Received port message" << std::endl;
       break;
     default:
       break;
-      // std::cout << "error unknown message type" << std::endl;
   }
 }
 

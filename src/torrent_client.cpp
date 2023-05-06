@@ -1,6 +1,7 @@
 #include <bencode.hpp>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sha1.hpp>
 
 #include "simpletorrent/GlobalState.h"

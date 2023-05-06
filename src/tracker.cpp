@@ -30,6 +30,7 @@ void Tracker::add_peers() {
 
   LOG_INFO("Num peers added by udp trackers: {}", peer_set_.size() - prv_num);
 
+  // skip http trackers if udp trackers returned peers
   if (peer_set_.size() > 0) {
     LOG_INFO("Skipping HTTP trackers");
     return;

@@ -29,6 +29,7 @@ std::string calc_info_hash(const bencode::dict& data_dict) {
 
 void add_trackers(const bencode::dict& torrent_data_dict,
                   TorrentMetadata& data) {
+  // if announce list not empty, get trackers from announce-list
   if (torrent_data_dict.count("announce-list")) {
     auto announce_list =
         std::get<bencode::list>(torrent_data_dict.at("announce-list"));
@@ -39,7 +40,7 @@ void add_trackers(const bencode::dict& torrent_data_dict,
         data.tracker_url_list.push_back(tracker_url);
       }
     }
-  } else {
+  } else {  // else take the single tracker in announce
     auto announce_url =
         std::get<bencode::string>(torrent_data_dict.at("announce"));
     data.tracker_url_list.push_back(announce_url);

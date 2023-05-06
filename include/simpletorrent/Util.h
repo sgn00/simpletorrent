@@ -1,15 +1,11 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <bit>
 #include <charconv>
 #include <iomanip>
-#include <random>
 #include <sstream>
 #include <string>
-
-#include "simpletorrent/Logger.h"
 
 namespace simpletorrent {
 
@@ -36,7 +32,6 @@ inline std::string to_hex_string(const std::array<uint8_t, SIZE>& arr) {
   return ss.str();
 }
 
-// Define a concept that checks if the type is uint16_t, uint32_t, uint64_t
 template <typename T>
 concept Uint = std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> ||
                std::is_same_v<T, uint16_t>;

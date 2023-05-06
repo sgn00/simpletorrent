@@ -1,17 +1,8 @@
-#define ASIO_STANDALONE
-#include <asio.hpp>
-#include <asio/ts/buffer.hpp>
-#include <asio/ts/internet.hpp>
-#include <bencode.hpp>
-#include <fstream>
-#include <indicators/cursor_control.hpp>
+#include <csignal>
 #include <iostream>
-#include <sstream>
 
 #include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
-#include "simpletorrent/Peer.h"
-#include "simpletorrent/Statistics.h"
 #include "simpletorrent/TorrentClient.h"
 
 using namespace simpletorrent;

@@ -1,6 +1,6 @@
 #include <filesystem>
+#include <sha1.hpp>
 
-#include "sha1.hpp"
 #include "simpletorrent/GlobalState.h"
 #include "simpletorrent/Logger.h"
 #include "simpletorrent/PieceManager.h"
@@ -116,9 +116,6 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
       pieces_.at(piece_index).state = PieceState::COMPLETED;
       num_pieces_completed_++;
       LOG_INFO("PieceManager: Completed piece {}", piece_index);
-      // std::cout << "Num completed piece: " << num_pieces_completed_
-      //           << std::endl;
-
     } else {
       LOG_ERROR("PieceManager: Piece {} has hash mismatch", piece_index);
       pieces_.at(piece_index).state = PieceState::NOT_STARTED;
@@ -126,8 +123,6 @@ void PieceManager::add_block(uint32_t peer_id, const Block& block) {
 
     remove_piece_from_buffer(piece_index);
   }
-
-  return;
 }
 
 void PieceManager::remove_peer(uint32_t peer_id) {

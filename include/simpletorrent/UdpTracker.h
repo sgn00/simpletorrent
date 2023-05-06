@@ -1,4 +1,5 @@
 #pragma once
+#define ASIO_STANDALONE
 #include <asio.hpp>
 #include <cstdint>
 #include <unordered_set>

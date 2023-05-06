@@ -101,10 +101,11 @@ inline std::vector<uint8_t> construct_message(
   uint32_t length = static_cast<uint32_t>(payload.size() + 1);
   std::vector<uint8_t> message;
 
+  length = convert_bo(length);
+
   // Length
-  for (int i = 3; i >= 0; --i) {
-    message.push_back((length >> (8 * i)) & 0xFF);
-  }
+  auto length_ptr = reinterpret_cast<uint8_t*>(&length);
+  message.insert(message.end(), length_ptr, length_ptr + sizeof(length));
 
   // Message type
   message.push_back(static_cast<uint8_t>(type));

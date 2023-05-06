@@ -1,3 +1,4 @@
+#define ASIO_STANDALONE
 #include <cpr/cpr.h>
 
 #include <asio.hpp>

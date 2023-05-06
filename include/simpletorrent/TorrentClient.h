@@ -1,11 +1,4 @@
-#include <atomic>
-#include <mutex>
 #include <string>
-#include <unordered_map>
-
-#include "Peer.h"
-#include "PieceManager.h"
-#include "Tracker.h"
 
 namespace simpletorrent {
 
