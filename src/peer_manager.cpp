@@ -20,7 +20,6 @@ PeerManager::PeerManager(PieceManager& piece_manager,
       peer_ips_(std::move(peer_ips)) {
   peers_.reserve(peer_ips.size());
   for (size_t i = 0; i < peer_ips_.size(); i++) {
-    uint32_t peer_num_id = i;
     const auto& peer_conn_info = peer_ips_.at(i);
     peers_.push_back(std::make_unique<Peer>(
         piece_manager, io_context_, info_hash_, our_id_, peer_conn_info.ip,

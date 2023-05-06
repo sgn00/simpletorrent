@@ -96,7 +96,7 @@ bool PieceManager::is_valid_block_data(const Block& block) const {
   size_t length_remaining =
       pieces_.at(piece_index).current_piece_length - block_offset;
   auto len = block.data_end - block.data_begin;
-  return len <= length_remaining;
+  return static_cast<size_t>(len) <= length_remaining;
 }
 
 void PieceManager::add_block(uint32_t peer_id, const Block& block) {

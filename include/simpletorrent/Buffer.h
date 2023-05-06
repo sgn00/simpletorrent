@@ -16,7 +16,7 @@ struct BufferPiece {
   bool empty;
 
   BufferPiece(uint32_t num_blocks, uint32_t piece_length)
-      : piece_index(piece_index),
+      : piece_index(0),
         data(piece_length, '\0'),
         blocks_state(num_blocks, BlockState::DONT_HAVE),
         empty(true) {}

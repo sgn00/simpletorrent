@@ -18,7 +18,7 @@ UdpTracker::UdpTracker(const std::string& tracker_url,
 void UdpTracker::add_peers() {
   asio::co_spawn(
       io_context_,
-      [&] -> asio::awaitable<void> {
+      [&]() -> asio::awaitable<void> {
         try {
           std::string host = extract_host(tracker_url_);
           std::string port = extract_port(tracker_url_);

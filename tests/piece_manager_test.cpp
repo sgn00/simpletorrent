@@ -42,9 +42,13 @@ std::vector<std::string> create_piece_hashes() {
 TorrentMetadata get_torrent_metadata(
     uint32_t piece_length, long long total_length,
     const std::vector<std::string>& hashes = create_piece_hashes()) {
-  return TorrentMetadata{
-      {},    hashes, piece_length, total_length, "piece_manager_test.out",
-      "XXX", {}};
+  return TorrentMetadata{{},
+                         hashes,
+                         piece_length,
+                         static_cast<uint64_t>(total_length),
+                         "piece_manager_test.out",
+                         "XXX",
+                         {}};
 }
 
 TEST_CASE("PieceManager update_piece_frequencies select_next_block",
@@ -64,7 +68,7 @@ TEST_CASE("PieceManager update_piece_frequencies select_next_block",
     REQUIRE(res_op.has_value());
     auto res = res_op.value();
     REQUIRE(res.piece_index == 0);
-    REQUIRE(res.block_offset == i * 5);
+    REQUIRE(res.block_offset == static_cast<uint32_t>(i * 5));
     REQUIRE(res.block_length == block_length);
   }
 
@@ -92,7 +96,7 @@ TEST_CASE(
     REQUIRE(res_op.has_value());
     auto res = res_op.value();
     REQUIRE(res.piece_index == 0);
-    REQUIRE(res.block_offset == i * 5);
+    REQUIRE(res.block_offset == static_cast<uint32_t>(i * 5));
     REQUIRE(res.block_length == block_length);
   }
 
@@ -101,7 +105,7 @@ TEST_CASE(
     REQUIRE(res_op.has_value());
     auto res = res_op.value();
     REQUIRE(res.piece_index == 0);
-    REQUIRE(res.block_offset == i * 5);
+    REQUIRE(res.block_offset == static_cast<uint32_t>(i * 5));
     REQUIRE(res.block_length == block_length);
   }
 
@@ -128,7 +132,7 @@ TEST_CASE(
   pm.update_piece_frequencies(bitfield_0, 0);
   pm.update_piece_frequencies(bitfield_1, 1);
 
-  auto res = pm.select_next_block(0);
+  pm.select_next_block(0);
 
   auto res_2 = pm.select_next_block(1);
   REQUIRE(!res_2.has_value());
@@ -198,7 +202,7 @@ TEST_CASE("PieceManager add_block complete one piece", "[PieceManager]") {
 
     for (int i = 0; i < 4; i++) {
       std::vector<uint8_t> block_data;
-      for (int k = 0; k < block_length; k++) {
+      for (uint32_t k = 0; k < block_length; k++) {
         block_data.push_back(normal_piece[i * block_length + k]);
       }
       std::string temp;
@@ -215,7 +219,7 @@ TEST_CASE("PieceManager add_block complete one piece", "[PieceManager]") {
   std::string result;
 
   if (inputFile.is_open()) {
-    for (int i = 0; i < piece_length && inputFile; ++i) {
+    for (size_t i = 0; i < piece_length && inputFile; ++i) {
       char c;
       inputFile.get(c);
       result.push_back(c);

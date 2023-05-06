@@ -18,7 +18,7 @@ using namespace simpletorrent;
 TEST_CASE("Buffer init") {
   uint32_t block_length = 5;
   uint32_t piece_length = 20;
-  Buffer buffer(5, 20, Buffer::DEFAULT_BUFFER_SIZE);
+  Buffer buffer(block_length, piece_length, Buffer::DEFAULT_BUFFER_SIZE);
   auto ret = buffer.get_pieces_in_buffer();
   REQUIRE(ret.size() == 0);
 }

@@ -13,7 +13,7 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Set specific flags for Debug and Release builds
-set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -rdynamic -g -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address -g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(Threads REQUIRED)

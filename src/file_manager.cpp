@@ -14,7 +14,6 @@ FileManager::FileManager(const TorrentMetadata& data)
         create_and_open_file(data.output_path, data.total_length));
   } else {  // multi file torrent
     for (const auto& f_metadata : data.files) {
-      auto file_length = f_metadata.file_length;
       std::filesystem::path file_path;
       for (const auto& section : f_metadata.paths) {
         file_path /= section;
