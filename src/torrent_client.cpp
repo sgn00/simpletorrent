@@ -35,9 +35,9 @@ std::string TorrentClient::generate_random_client_id(size_t length) {
 void TorrentClient::start_download(const std::string& torrent_file) {
   // 1. Parse torrent file
   TorrentMetadata metadata = parser::parse_torrent_file(torrent_file);
-  std::cout << "Total Len: " << metadata.total_length
+  std::cout << "Total Length: " << metadata.total_length
             << " | Num Pieces: " << metadata.piece_hashes.size()
-            << " | Piece Len: " << metadata.piece_length << std::endl;
+            << " | Piece Length: " << metadata.piece_length << std::endl;
 
   Tracker tracker(metadata.tracker_url_list, metadata.info_hash, our_id_);
 

@@ -38,6 +38,8 @@ class PeerManager {
   void cleanup_connections();
 
   void open_connections();
+
+  asio::awaitable<void> sleep(uint32_t num_seconds);
 };
 
 }  // namespace simpletorrent

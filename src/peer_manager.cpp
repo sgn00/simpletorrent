@@ -50,10 +50,12 @@ void PeerManager::start() {
 }
 
 asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
-  co_await asio::steady_timer(io_context_,
-                              std::chrono::seconds(duration::CLEANUP_TIMEOUT))
-      .async_wait(asio::use_awaitable);
   while (piece_manager_.continue_download()) {
+    co_await sleep(duration::CLEANUP_INTERVAL);
+    if (!piece_manager_.continue_download()) {
+      break;
+    }
+
     cleanup_connections();
 
     uint32_t old_size = peers_.size();
@@ -72,9 +74,7 @@ asio::awaitable<void> PeerManager::cleanup_and_open_connections() {
 
     LOG_INFO("PeerManager: Added {} peers", peers_.size() - old_size);
 
-    co_await asio::steady_timer(io_context_,
-                                std::chrono::seconds(duration::CLEANUP_TIMEOUT))
-        .async_wait(asio::use_awaitable);
+    co_await sleep(duration::CLEANUP_INTERVAL);
   }
 
   LOG_INFO("PeerManager: stopping!");
@@ -116,6 +116,11 @@ void PeerManager::open_connections() {
       peers_state_[i] = get_next_peer_state(peers_state_[i]);
     }
   }
+}
+
+asio::awaitable<void> PeerManager::sleep(uint32_t num_seconds) {
+  co_await asio::steady_timer(io_context_, std::chrono::seconds(num_seconds))
+      .async_wait(asio::use_awaitable);
 }
 
 }  // namespace simpletorrent
