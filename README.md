@@ -15,3 +15,5 @@ simpletorrent has OpenSSL dependencies so install the `libssl-dev` package:
 4. `cmake -DCMAKE_BUILD_TYPE=Release ..`
 5. `./simpletorrent <path to torrent file>`
 
+## Example torrents
+You may find some example torrents in example-torrents folder. It contains a debian ISO torrent, and a MARS dataset from https://academictorrents.com/.

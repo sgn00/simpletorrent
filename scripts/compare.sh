@@ -1,4 +1,5 @@
 #!/bin/bash
+# Script to recursively check if 2 folders are similar, including sha256sum of all files. Used for testing multifile torrents. 
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <folder1> <folder2>"
