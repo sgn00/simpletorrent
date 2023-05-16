@@ -50,7 +50,7 @@ FetchContent_MakeAvailable(spdlog)
 file(GLOB_RECURSE SIMPLETORRENT_SOURCES "src/*.cpp")
 # Exclude main.cpp from the list of sources for the library
 list(FILTER SIMPLETORRENT_SOURCES EXCLUDE REGEX "src/main.cpp")
-add_library(simpletorrent_lib ${SIMPLETORRENT_SOURCES})
+add_library(simpletorrent_lib STATIC ${SIMPLETORRENT_SOURCES})
 target_include_directories(simpletorrent_lib PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/external/include ${asio_SOURCE_DIR}/asio/include)
 target_link_libraries(simpletorrent_lib PUBLIC Threads::Threads cpr::cpr readerwriterqueue spdlog::spdlog indicators)
 
