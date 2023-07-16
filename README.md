@@ -18,3 +18,6 @@ simpletorrent has OpenSSL dependencies so install the `libssl-dev` package:
 
 ## Example torrents
 You may find some example torrents in example-torrents folder. It contains a debian ISO torrent, and a MARS dataset from https://academictorrents.com/.
+
+## Future to-dos
+Torrent client only seems to be performant on a high speed internet connection. To investigate how to make it work better on lower speed connections.
